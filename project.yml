@@ -53,8 +53,8 @@ targets:
         CFBundleName: BreezeFan
         CFBundleDisplayName: BreezeFan
         CFBundleIdentifier: com.breezefan.app
-        CFBundleShortVersionString: "0.2.0"
-        CFBundleVersion: "2"
+        CFBundleShortVersionString: "0.3.0"
+        CFBundleVersion: "3"
         CFBundleIconFile: AppIcon
         CFBundleIconName: AppIcon
         LSMinimumSystemVersion: "14.0"
