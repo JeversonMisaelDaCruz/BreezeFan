@@ -67,11 +67,11 @@ context.setLineWidth(4)
 context.strokePath()
 context.restoreGState()
 
-// Render fan SF Symbol via NSImage rasterization
+// Render flame SF Symbol via NSImage rasterization (test icon for v0.2.0 update flow).
 let cfg = NSImage.SymbolConfiguration(pointSize: 620, weight: .semibold)
-guard let fanImage = NSImage(systemSymbolName: "fan.fill", accessibilityDescription: nil)?
+guard let fanImage = NSImage(systemSymbolName: "flame.fill", accessibilityDescription: nil)?
         .withSymbolConfiguration(cfg) else {
-    print("✗ Cannot load fan.fill SF Symbol")
+    print("✗ Cannot load flame.fill SF Symbol")
     exit(1)
 }
 
