@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
+    <channel>
+        <title>BreezeFan</title>
+        <link>https://jeversonmisaeldacruz.github.io/Macfancontrol/appcast.xml</link>
+        <description>BreezeFan release feed for Sparkle auto-update</description>
+        <language>en</language>
+    </channel>
+</rss>
