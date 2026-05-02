@@ -1,4 +1,4 @@
-# FanControl 🇺🇸
+# BreezeFan 🇺🇸
 
 <p align="center">
   <a href="../README.md">🏠 Home</a> ·
@@ -30,7 +30,7 @@ A replacement for [crystalidea's Macs Fan Control](https://github.com/crystalide
 ## Architecture
 
 ```
-FanControl.app  ──── NSXPCConnection ────→  FanControlHelper (root LaunchDaemon)
+BreezeFan.app  ──── NSXPCConnection ────→  BreezeFanHelper (root LaunchDaemon)
    (sandbox)            (validated)            │
                                                 ├─ SMCReader/Writer (IOKit)
                                                 ├─ TemperatureReader (SMC + IOHID fallback)
@@ -42,8 +42,8 @@ FanControl.app  ──── NSXPCConnection ────→  FanControlHelper (
 
 | Component             | Path                          | What                                                                  |
 | --------------------- | ----------------------------- | --------------------------------------------------------------------- |
-| `FanControl.app`      | `App/`                        | SwiftUI window 360×640 + menu bar item, sandbox, talks via XPC        |
-| `FanControlHelper`    | `Helper/`                     | LaunchDaemon root, owns SMC reads/writes + control loop + watchdog    |
+| `BreezeFan.app`      | `App/`                        | SwiftUI window 360×640 + menu bar item, sandbox, talks via XPC        |
+| `BreezeFanHelper`    | `Helper/`                     | LaunchDaemon root, owns SMC reads/writes + control loop + watchdog    |
 | `Shared/`             | `Shared/`                     | Codable types + pure-logic algorithms (`Curve`, `CurveInterpolator`)  |
 
 ## Prerequisites
@@ -66,13 +66,13 @@ cd /Users/jeversonmisael/Documents/codigos/Macfancontrol
 xcodegen generate
 
 # 2. Open in Xcode
-open FanControl.xcodeproj
+open BreezeFan.xcodeproj
 
-# 3. Build & run (⌘R) — target FanControl
+# 3. Build & run (⌘R) — target BreezeFan
 #    First run: macOS will ask for admin password to install the privileged helper.
 
 # Or via command line:
-xcodebuild -scheme FanControl -destination 'platform=macOS' build
+xcodebuild -scheme BreezeFan -destination 'platform=macOS' build
 ```
 
 ## Building a .dmg installer
@@ -91,19 +91,19 @@ brew install create-dmg
 ./scripts/build-dmg.sh --version 0.2.0
 ```
 
-Output in `dist/FanControl-<version>.dmg` (~600KB).
+Output in `dist/BreezeFan-<version>.dmg` (~600KB).
 
 ### Installing the .dmg on another machine
 
 1. Open the `.dmg` (double-click)
-2. Drag **FanControl.app** to **Applications** (shortcut shown inside the .dmg)
+2. Drag **BreezeFan.app** to **Applications** (shortcut shown inside the .dmg)
 3. Open the app — first launch will prompt for admin password to install the privileged helper
 
 ### ⚠️ Gatekeeper warning
 
 The `.dmg` is built with **ad-hoc signing** (no Apple Developer ID). On other machines, macOS will block the first launch with a message like:
 
-> "FanControl cannot be opened because the developer cannot be verified."
+> "BreezeFan cannot be opened because the developer cannot be verified."
 
 **Workaround**: right-click on the app → **Open** → **Open Anyway**. Do it once, macOS remembers.
 
@@ -116,7 +116,7 @@ The curve editor is protected by an activation key:
 1. Open the app
 2. At the bottom of the window, click **🔒 Unlock fan curve**
 3. Enter the provided activation key
-4. After validation, the editor stays permanently unlocked (persists in `~/Library/Application Support/FanControl/state.json`)
+4. After validation, the editor stays permanently unlocked (persists in `~/Library/Application Support/BreezeFan/state.json`)
 
 > **Note**: the unlock state is stored in `state.json` as a boolean flag. To re-lock, delete the file.
 
@@ -141,17 +141,17 @@ The curve editor is protected by an activation key:
 - **Edit fan curve…** — opens the editor (or unlock sheet if locked)
 - **Menu bar only** — toggle to hide the Dock icon
 - **Open System Settings…** — opens Login Items
-- **Quit FanControl** — quits the app
+- **Quit BreezeFan** — quits the app
 
 ## Manual uninstallation (last resort)
 
 ```bash
-sudo launchctl unload /Library/LaunchDaemons/com.fancontrol.helper.plist
-sudo rm /Library/LaunchDaemons/com.fancontrol.helper.plist
-sudo rm -rf /Library/Application\ Support/FanControl
-sudo rm /Library/PrivilegedHelperTools/com.fancontrol.helper
-rm -rf ~/Library/Application\ Support/FanControl
-trash /Applications/FanControl.app
+sudo launchctl unload /Library/LaunchDaemons/com.breezefan.helper.plist
+sudo rm /Library/LaunchDaemons/com.breezefan.helper.plist
+sudo rm -rf /Library/Application\ Support/BreezeFan
+sudo rm /Library/PrivilegedHelperTools/com.breezefan.helper
+rm -rf ~/Library/Application\ Support/BreezeFan
+trash /Applications/BreezeFan.app
 ```
 
 After unload, the fans return to macOS Auto control within ~5 seconds.
@@ -159,7 +159,7 @@ After unload, the fans return to macOS Auto control within ~5 seconds.
 ## Logs
 
 ```bash
-log stream --predicate 'subsystem == "com.fancontrol.helper"' --info
+log stream --predicate 'subsystem == "com.breezefan.helper"' --info
 # Or via app menu → "Open logs in Console…"
 ```
 

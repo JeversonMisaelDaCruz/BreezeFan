@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Decorative traffic-light dots. Mirrors `FanControl/app/window-shell.jsx FCTrafficLights`.
+/// Decorative traffic-light dots. Mirrors `BreezeFan/app/window-shell.jsx FCTrafficLights`.
 /// Decorative only — clicks do nothing. Window close/minimize is handled via menu/cmd shortcuts.
 struct FCTrafficLights: View {
     var body: some View {

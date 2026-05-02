@@ -1,4 +1,4 @@
-# FanControl 🇪🇸
+# BreezeFan 🇪🇸
 
 <p align="center">
   <a href="../README.md">🏠 Home</a> ·
@@ -30,7 +30,7 @@ Reemplazo del [Macs Fan Control de crystalidea](https://github.com/crystalidea/m
 ## Arquitectura
 
 ```
-FanControl.app  ──── NSXPCConnection ────→  FanControlHelper (root LaunchDaemon)
+BreezeFan.app  ──── NSXPCConnection ────→  BreezeFanHelper (root LaunchDaemon)
    (sandbox)            (validado)             │
                                                 ├─ SMCReader/Writer (IOKit)
                                                 ├─ TemperatureReader (SMC + IOHID fallback)
@@ -57,7 +57,7 @@ brew install xcodegen
 ```bash
 cd /Users/jeversonmisael/Documents/codigos/Macfancontrol
 xcodegen generate
-open FanControl.xcodeproj
+open BreezeFan.xcodeproj
 # ⌘R para compilar y ejecutar
 ```
 
@@ -77,19 +77,19 @@ brew install create-dmg
 ./scripts/build-dmg.sh --version 0.2.0
 ```
 
-Salida en `dist/FanControl-<version>.dmg` (~600KB).
+Salida en `dist/BreezeFan-<version>.dmg` (~600KB).
 
 ### Cómo instalar el .dmg en otra máquina
 
 1. Abre el `.dmg` (doble clic)
-2. Arrastra **FanControl.app** a **Applications**
+2. Arrastra **BreezeFan.app** a **Applications**
 3. Abre la aplicación — el primer lanzamiento pide contraseña de administrador para instalar el helper privilegiado
 
 ### ⚠️ Aviso de Gatekeeper
 
 El `.dmg` se genera con **firma ad-hoc** (sin Apple Developer ID). En otras máquinas, macOS bloqueará la primera apertura con un mensaje como:
 
-> "FanControl no se puede abrir porque el desarrollador no se puede verificar."
+> "BreezeFan no se puede abrir porque el desarrollador no se puede verificar."
 
 **Solución**: clic derecho en la aplicación → **Abrir** → **Abrir de todas formas**. Hazlo una vez, macOS lo recuerda.
 
@@ -120,12 +120,12 @@ El editor de curva está protegido por una clave de activación:
 ## Desinstalación manual
 
 ```bash
-sudo launchctl unload /Library/LaunchDaemons/com.fancontrol.helper.plist
-sudo rm /Library/LaunchDaemons/com.fancontrol.helper.plist
-sudo rm -rf /Library/Application\ Support/FanControl
-sudo rm /Library/PrivilegedHelperTools/com.fancontrol.helper
-rm -rf ~/Library/Application\ Support/FanControl
-trash /Applications/FanControl.app
+sudo launchctl unload /Library/LaunchDaemons/com.breezefan.helper.plist
+sudo rm /Library/LaunchDaemons/com.breezefan.helper.plist
+sudo rm -rf /Library/Application\ Support/BreezeFan
+sudo rm /Library/PrivilegedHelperTools/com.breezefan.helper
+rm -rf ~/Library/Application\ Support/BreezeFan
+trash /Applications/BreezeFan.app
 ```
 
 ## Créditos

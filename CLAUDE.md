@@ -7,7 +7,7 @@ This project is a native macOS fan control app for `MacBookPro18,3`, written in 
 ```
 Macfancontrol/
 ├── App/                 SwiftUI app (sandboxed UI, talks to helper via XPC)
-│   ├── FanControlApp.swift     @main entry point
+│   ├── BreezeFanApp.swift     @main entry point
 │   ├── Window/                 FCWindow, FCSection, FCDivider, FCTrafficLights
 │   ├── Theme/                  Colors, Fonts (mirrors atoms.jsx tokens)
 │   ├── Views/                  MainView, FanRow, PresetGrid, PresetButton
@@ -22,7 +22,7 @@ Macfancontrol/
 │   ├── Sensors/                TemperatureReader, SnapshotBuilder, SensorPoller, ModelDetector
 │   ├── Control/                ControlLoop, Hysteresis, SafetyOverride, ModeManager, ConfigStore, Watchdog
 │   ├── XPC/                    XPCConnectionValidator (signature + bundle ID validation)
-│   └── com.fancontrol.helper.plist  LaunchDaemon plist
+│   └── com.breezefan.helper.plist  LaunchDaemon plist
 ├── Shared/              Pure-logic types (Codable). Compiled into both targets and SPM.
 │   ├── HelperProtocol.swift    @objc protocol shared between app and helper
 │   ├── SharedTypes.swift       SensorSnapshot, ControlMode, Curve, CurveStep, Preset, HelperError, ControlConfig
@@ -36,9 +36,9 @@ Macfancontrol/
 │   ├── CurveTests/             CurveValidator, CurveInterpolator, Preset
 │   ├── UI/                     SwiftUI snapshot tests (later phase)
 │   └── Persistence/            StateStore, ControlConfigStore (later phase)
-├── FanControl/          REFERENCE-ONLY React/JSX design. Do NOT modify or link as bundle resource.
+├── BreezeFan/          REFERENCE-ONLY React/JSX design. Do NOT modify or link as bundle resource.
 ├── openspec/            Spec-driven workflow artifacts.
-├── project.yml          xcodegen project specification (generates FanControl.xcodeproj)
+├── project.yml          xcodegen project specification (generates BreezeFan.xcodeproj)
 ├── Package.swift        SPM manifest (Shared module only)
 └── README.md            User-facing docs
 ```
@@ -57,8 +57,8 @@ Anything that can be tested without IO lives in `Shared/`. SMC/IOKit/IOHID code 
 ### XPC payloads are JSON-Codable
 The `@objc HelperProtocol` passes `Data` for any non-primitive (snapshot, mode, curve). The `HelperClient` and `HelperService` encode/decode at the boundary. This avoids Apple's NSSecureCoding hassles and keeps types Swift-Codable-clean.
 
-### Visual fidelity to FanControl/*.jsx
-`FanControl/app/window-shell.jsx` + `main-mvp.jsx` + `curve-mvp.jsx` are the **design source of truth**. SwiftUI views should mirror them as closely as possible: colors (`#1a1c20`, `#3b82f6`, `#ff5f57`), spacing, fonts (SF Pro 11pt body, 64pt thin display, 8pt mono badges), animations (260ms sheet bottom-up).
+### Visual fidelity to BreezeFan/*.jsx
+`BreezeFan/app/window-shell.jsx` + `main-mvp.jsx` + `curve-mvp.jsx` are the **design source of truth**. SwiftUI views should mirror them as closely as possible: colors (`#1a1c20`, `#3b82f6`, `#ff5f57`), spacing, fonts (SF Pro 11pt body, 64pt thin display, 8pt mono badges), animations (260ms sheet bottom-up).
 
 ### Hardware lock
 The MVP only supports `MacBookPro18,3`. `ModelDetector` reads `IOPlatformExpertDevice` → `model` and the helper enters read-only mode on any other identifier. Don't relax this without a follow-up change.
@@ -69,13 +69,13 @@ The `SafetyOverride` is non-negotiable. Any change to the control loop must keep
 ### Helper communication
 - App → Helper: `HelperClient.shared.<method>()` async wrappers
 - Helper exports: implements `HelperProtocol` (objc protocol), returns Data for complex types
-- Validation: `XPCConnectionValidator` checks `SecCodeCheckValidity` + bundle ID = `com.fancontrol.app` BEFORE accepting any connection
+- Validation: `XPCConnectionValidator` checks `SecCodeCheckValidity` + bundle ID = `com.breezefan.app` BEFORE accepting any connection
 
 ### File system layout in production
-- `~/Library/Application Support/FanControl/state.json` — App-side UI state (accent, tempUnit, last curve)
-- `/Library/Application Support/FanControl/control.json` — Helper-side control config (mode, curve, forced RPM)
-- `/Library/LaunchDaemons/com.fancontrol.helper.plist` — managed by `SMAppService`
-- `/var/log/FanControl/helper.{log,err}` — helper stdout/stderr (rotated by launchd)
+- `~/Library/Application Support/BreezeFan/state.json` — App-side UI state (accent, tempUnit, last curve)
+- `/Library/Application Support/BreezeFan/control.json` — Helper-side control config (mode, curve, forced RPM)
+- `/Library/LaunchDaemons/com.breezefan.helper.plist` — managed by `SMAppService`
+- `/var/log/BreezeFan/helper.{log,err}` — helper stdout/stderr (rotated by launchd)
 
 ## Open questions / future changes (out of MVP scope)
 
@@ -96,20 +96,20 @@ See `openspec/changes/implement-fan-control-mvp/proposal.md` Non-Goals section f
 xcodegen generate
 
 # Build via Xcode CLI
-xcodebuild -scheme FanControl -destination 'platform=macOS' build
-xcodebuild -scheme FanControl -destination 'platform=macOS' test
+xcodebuild -scheme BreezeFan -destination 'platform=macOS' build
+xcodebuild -scheme BreezeFan -destination 'platform=macOS' test
 
 # Build pure-logic Shared module via SPM (no Xcode required)
 swift build
 
 # Live helper logs
-log stream --predicate 'subsystem == "com.fancontrol.helper"' --info
+log stream --predicate 'subsystem == "com.breezefan.helper"' --info
 
 # Check helper status
-launchctl list | grep fancontrol
-sudo launchctl print system/com.fancontrol.helper
+launchctl list | grep breezefan
+sudo launchctl print system/com.breezefan.helper
 
 # Manually unregister (when uninstall flow is broken)
-sudo launchctl unload /Library/LaunchDaemons/com.fancontrol.helper.plist
-sudo rm -rf /Library/Application\ Support/FanControl
+sudo launchctl unload /Library/LaunchDaemons/com.breezefan.helper.plist
+sudo rm -rf /Library/Application\ Support/BreezeFan
 ```

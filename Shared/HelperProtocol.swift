@@ -1,6 +1,6 @@
 import Foundation
 
-/// XPC protocol shared between FanControl.app (sandbox) and FanControlHelper (root daemon).
+/// XPC protocol shared between BreezeFan.app (sandbox) and BreezeFanHelper (root daemon).
 ///
 /// Bridge to Objective-C is required because NSXPCInterface only accepts @objc protocols.
 /// Codable Swift types are passed via NSSecureCoding-compatible payload (Data wrapping JSON).
@@ -33,7 +33,7 @@ import Foundation
 
 /// Mach service name used by both endpoints to bind/connect.
 public enum HelperConstants {
-    public static let machServiceName = "com.fancontrol.helper"
-    public static let helperBundleID = "com.fancontrol.helper"
-    public static let appBundleID = "com.fancontrol.app"
+    public static let machServiceName = "com.breezefan.helper"
+    public static let helperBundleID = "com.breezefan.helper"
+    public static let appBundleID = "com.breezefan.app"
 }

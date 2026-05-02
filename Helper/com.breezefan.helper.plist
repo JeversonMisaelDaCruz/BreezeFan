@@ -3,12 +3,12 @@
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.fancontrol.helper</string>
+    <string>com.breezefan.helper</string>
     <key>BundleProgram</key>
-    <string>Contents/MacOS/Helpers/FanControlHelper</string>
+    <string>Contents/MacOS/Helpers/BreezeFanHelper</string>
     <key>MachServices</key>
     <dict>
-        <key>com.fancontrol.helper</key>
+        <key>com.breezefan.helper</key>
         <true/>
     </dict>
     <key>RunAtLoad</key>
@@ -19,7 +19,7 @@
     <string>Background</string>
     <key>AssociatedBundleIdentifiers</key>
     <array>
-        <string>com.fancontrol.app</string>
+        <string>com.breezefan.app</string>
     </array>
 </dict>
 </plist>

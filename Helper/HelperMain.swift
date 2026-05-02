@@ -1,10 +1,10 @@
 import Foundation
 
-/// Entry point of the FanControlHelper LaunchDaemon.
+/// Entry point of the BreezeFanHelper LaunchDaemon.
 @main
 enum HelperMain {
     static func main() {
-        HelperLogger.xpc.log("FanControlHelper boot — bundle=\(HelperConstants.helperBundleID)")
+        HelperLogger.xpc.log("BreezeFanHelper boot — bundle=\(HelperConstants.helperBundleID)")
 
         // Detect hardware. On unsupported models we accept connections but reject mutations.
         let model = ModelDetector.current

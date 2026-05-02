@@ -53,7 +53,7 @@ final class UpdateChecker {
         var request = URLRequest(url: url)
         request.timeoutInterval = 10
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
-        request.setValue("FanControl-update-checker", forHTTPHeaderField: "User-Agent")
+        request.setValue("BreezeFan-update-checker", forHTTPHeaderField: "User-Agent")
 
         do {
             let (data, response) = try await URLSession.shared.data(for: request)

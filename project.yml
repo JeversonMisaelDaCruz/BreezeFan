@@ -1,6 +1,6 @@
-name: FanControl
+name: BreezeFan
 options:
-  bundleIdPrefix: com.fancontrol
+  bundleIdPrefix: com.breezefan
   deploymentTarget:
     macOS: "14.0"
   developmentLanguage: en
@@ -22,7 +22,7 @@ settings:
     GCC_TREAT_WARNINGS_AS_ERRORS: NO
 
 targets:
-  FanControl:
+  BreezeFan:
     type: application
     platform: macOS
     deploymentTarget: "14.0"
@@ -33,21 +33,21 @@ targets:
         buildPhase: resources
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.fancontrol.app
-        PRODUCT_NAME: FanControl
+        PRODUCT_BUNDLE_IDENTIFIER: com.breezefan.app
+        PRODUCT_NAME: BreezeFan
         INFOPLIST_FILE: App/Info.plist
         INFOPLIST_KEY_LSUIElement: NO
         INFOPLIST_KEY_NSHumanReadableCopyright: ""
         INFOPLIST_KEY_LSMinimumSystemVersion: "14.0"
         ENABLE_APP_SANDBOX: NO
-        CODE_SIGN_ENTITLEMENTS: App/FanControl.entitlements
+        CODE_SIGN_ENTITLEMENTS: App/BreezeFan.entitlements
         SWIFT_OBJC_BRIDGING_HEADER: ""
     info:
       path: App/Info.plist
       properties:
-        CFBundleName: FanControl
-        CFBundleDisplayName: FanControl
-        CFBundleIdentifier: com.fancontrol.app
+        CFBundleName: BreezeFan
+        CFBundleDisplayName: BreezeFan
+        CFBundleIdentifier: com.breezefan.app
         CFBundleShortVersionString: "0.2.0"
         CFBundleVersion: "2"
         CFBundleIconFile: AppIcon
@@ -56,7 +56,7 @@ targets:
         NSHighResolutionCapable: true
         NSPrincipalClass: NSApplication
     dependencies:
-      - target: FanControlHelper
+      - target: BreezeFanHelper
         embed: false
     postBuildScripts:
       - name: "Embed Helper into Library/LaunchDaemons"
@@ -67,14 +67,14 @@ targets:
           mkdir -p "$APP_FRAMEWORKS_DIR"
           mkdir -p "$APP_HELPERS_DIR"
           # Copy helper binary
-          cp -f "${BUILT_PRODUCTS_DIR}/FanControlHelper" "$APP_HELPERS_DIR/FanControlHelper"
+          cp -f "${BUILT_PRODUCTS_DIR}/BreezeFanHelper" "$APP_HELPERS_DIR/BreezeFanHelper"
           # Copy launchd plist
-          cp -f "${SRCROOT}/Helper/com.fancontrol.helper.plist" "$APP_FRAMEWORKS_DIR/com.fancontrol.helper.plist"
+          cp -f "${SRCROOT}/Helper/com.breezefan.helper.plist" "$APP_FRAMEWORKS_DIR/com.breezefan.helper.plist"
         outputFiles:
-          - $(BUILT_PRODUCTS_DIR)/$(WRAPPER_NAME)/Contents/Library/LaunchDaemons/com.fancontrol.helper.plist
-          - $(BUILT_PRODUCTS_DIR)/$(WRAPPER_NAME)/Contents/MacOS/Helpers/FanControlHelper
+          - $(BUILT_PRODUCTS_DIR)/$(WRAPPER_NAME)/Contents/Library/LaunchDaemons/com.breezefan.helper.plist
+          - $(BUILT_PRODUCTS_DIR)/$(WRAPPER_NAME)/Contents/MacOS/Helpers/BreezeFanHelper
 
-  FanControlHelper:
+  BreezeFanHelper:
     type: tool
     platform: macOS
     deploymentTarget: "14.0"
@@ -83,20 +83,20 @@ targets:
       - path: Shared
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.fancontrol.helper
-        PRODUCT_NAME: FanControlHelper
+        PRODUCT_BUNDLE_IDENTIFIER: com.breezefan.helper
+        PRODUCT_NAME: BreezeFanHelper
         INFOPLIST_KEY_LSMinimumSystemVersion: "14.0"
         ENABLE_HARDENED_RUNTIME: YES
         SKIP_INSTALL: YES
-        CODE_SIGN_ENTITLEMENTS: Helper/FanControlHelper.entitlements
+        CODE_SIGN_ENTITLEMENTS: Helper/BreezeFanHelper.entitlements
     info:
       path: Helper/Info.plist
       properties:
-        CFBundleIdentifier: com.fancontrol.helper
+        CFBundleIdentifier: com.breezefan.helper
         CFBundleShortVersionString: "0.1.0"
         CFBundleVersion: "1"
 
-  FanControlTests:
+  BreezeFanTests:
     type: bundle.unit-test
     platform: macOS
     deploymentTarget: "14.0"
@@ -105,22 +105,22 @@ targets:
       - path: Shared
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.fancontrol.tests
-        PRODUCT_NAME: FanControlTests
+        PRODUCT_BUNDLE_IDENTIFIER: com.breezefan.tests
+        PRODUCT_NAME: BreezeFanTests
         SWIFT_OBJC_BRIDGING_HEADER: ""
     dependencies:
-      - target: FanControl
+      - target: BreezeFan
 
 schemes:
-  FanControl:
+  BreezeFan:
     build:
       targets:
-        FanControlHelper: all
-        FanControl: all
-        FanControlTests: [test]
+        BreezeFanHelper: all
+        BreezeFan: all
+        BreezeFanTests: [test]
     test:
       targets:
-        - FanControlTests
+        - BreezeFanTests
       gatherCoverageData: true
     run:
       config: Debug

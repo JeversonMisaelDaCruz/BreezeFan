@@ -243,7 +243,7 @@ final class HelperClient {
 
     /// Registers the helper via SMAppService.daemon. Triggers admin password prompt the first time.
     func installHelperIfNeeded() -> InstallResult {
-        let service = SMAppService.daemon(plistName: "com.fancontrol.helper.plist")
+        let service = SMAppService.daemon(plistName: "com.breezefan.helper.plist")
 
         switch service.status {
         case .enabled:
@@ -268,11 +268,11 @@ final class HelperClient {
     }
 
     func uninstallHelper() async throws {
-        let service = SMAppService.daemon(plistName: "com.fancontrol.helper.plist")
+        let service = SMAppService.daemon(plistName: "com.breezefan.helper.plist")
         try await service.unregister()
     }
 
     func helperStatus() -> SMAppService.Status {
-        SMAppService.daemon(plistName: "com.fancontrol.helper.plist").status
+        SMAppService.daemon(plistName: "com.breezefan.helper.plist").status
     }
 }

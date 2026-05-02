@@ -13,7 +13,7 @@ extension Color {
     }
 }
 
-/// Theme tokens. Mirrors `FanControl/app/window-shell.jsx` palette.
+/// Theme tokens. Mirrors `BreezeFan/app/window-shell.jsx` palette.
 public enum FCTheme {
     public static let accentBlue   = Color(hex: "#3b82f6")
     public static let accentPurple = Color(hex: "#a855f7")

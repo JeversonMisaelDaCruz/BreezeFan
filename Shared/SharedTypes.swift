@@ -196,7 +196,7 @@ public struct FanCeilings: Codable, Sendable, Equatable {
     }
 }
 
-/// Persisted config for the helper. Lives at /Library/Application Support/FanControl/control.json.
+/// Persisted config for the helper. Lives at /Library/Application Support/BreezeFan/control.json.
 public struct ControlConfig: Codable, Sendable, Equatable {
     public var version: Int
     public var modeKind: ControlMode.Kind

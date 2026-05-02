@@ -12,7 +12,7 @@ public protocol SMCWriting: AnyObject {
 
 public final class SMCWriterImpl: SMCWriting, @unchecked Sendable {
     private var connection: io_connect_t = 0
-    private let queue = DispatchQueue(label: "com.fancontrol.helper.smc.writer")
+    private let queue = DispatchQueue(label: "com.breezefan.helper.smc.writer")
 
     public init() throws {
         let service = IOServiceGetMatchingService(

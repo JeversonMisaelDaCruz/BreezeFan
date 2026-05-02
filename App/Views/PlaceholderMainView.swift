@@ -6,7 +6,7 @@ struct PlaceholderMainView: View {
         VStack(spacing: 0) {
             // Header
             ZStack {
-                Text("FanControl")
+                Text("BreezeFan")
                     .font(FCFont.windowTitle)
                     .foregroundStyle(FCTheme.textPrimary)
             }

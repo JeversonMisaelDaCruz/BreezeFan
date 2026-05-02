@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# build-dmg.sh — builds FanControl.app in Release mode and packages it as a .dmg
+# build-dmg.sh — builds BreezeFan.app in Release mode and packages it as a .dmg
 #
 # Usage:
 #   ./scripts/build-dmg.sh                  # default — uses hdiutil
@@ -8,7 +8,7 @@
 #   ./scripts/build-dmg.sh --version 0.2.0  # custom version in filename
 #
 # Output:
-#   dist/FanControl-<version>.dmg
+#   dist/BreezeFan-<version>.dmg
 #
 # Notes on distribution:
 #   - This builds with ad-hoc signing (CODE_SIGN_IDENTITY="-"). The .dmg works
@@ -25,8 +25,8 @@ set -euo pipefail
 # ─── Defaults ─────────────────────────────────────────────────────────────────
 
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-APP_NAME="FanControl"
-SCHEME="FanControl"
+APP_NAME="BreezeFan"
+SCHEME="BreezeFan"
 CONFIGURATION="Release"
 VERSION="0.1.0"
 PRETTY=false
@@ -67,8 +67,8 @@ if ! command -v xcodebuild >/dev/null 2>&1; then
   exit 1
 fi
 
-if [[ ! -f "$PROJECT_DIR/FanControl.xcodeproj/project.pbxproj" ]]; then
-  echo "▸ FanControl.xcodeproj not found — running xcodegen…"
+if [[ ! -f "$PROJECT_DIR/BreezeFan.xcodeproj/project.pbxproj" ]]; then
+  echo "▸ BreezeFan.xcodeproj not found — running xcodegen…"
   if ! command -v xcodegen >/dev/null 2>&1; then
     echo "✗ xcodegen not found. Install: brew install xcodegen" >&2
     exit 1
@@ -90,7 +90,7 @@ mkdir -p "$BUILD_DIR" "$STAGING_DIR" "$DIST_DIR"
 
 echo "▸ Building $SCHEME ($CONFIGURATION) for macOS…"
 xcodebuild \
-  -project "$PROJECT_DIR/FanControl.xcodeproj" \
+  -project "$PROJECT_DIR/BreezeFan.xcodeproj" \
   -scheme "$SCHEME" \
   -configuration "$CONFIGURATION" \
   -destination 'platform=macOS' \
@@ -110,11 +110,11 @@ fi
 echo "▸ Built app: $BUILT_APP"
 
 # Verify helper is embedded
-if [[ ! -f "$BUILT_APP/Contents/MacOS/Helpers/FanControlHelper" ]]; then
+if [[ ! -f "$BUILT_APP/Contents/MacOS/Helpers/BreezeFanHelper" ]]; then
   echo "✗ Helper missing from app bundle — check project.yml postBuildScripts" >&2
   exit 1
 fi
-if [[ ! -f "$BUILT_APP/Contents/Library/LaunchDaemons/com.fancontrol.helper.plist" ]]; then
+if [[ ! -f "$BUILT_APP/Contents/Library/LaunchDaemons/com.breezefan.helper.plist" ]]; then
   echo "✗ Helper plist missing from app bundle" >&2
   exit 1
 fi
@@ -130,7 +130,7 @@ ln -s /Applications "$STAGING_DIR/Applications"
 if $PRETTY; then
   echo "▸ Building .dmg with create-dmg…"
   create-dmg \
-    --volname "FanControl $VERSION" \
+    --volname "BreezeFan $VERSION" \
     --window-pos 200 120 \
     --window-size 600 380 \
     --icon-size 100 \
@@ -146,7 +146,7 @@ else
   TEMP_DMG="$BUILD_DIR/temp.dmg"
 
   hdiutil create \
-    -volname "FanControl $VERSION" \
+    -volname "BreezeFan $VERSION" \
     -srcfolder "$STAGING_DIR" \
     -ov \
     -format UDRW \
@@ -171,5 +171,5 @@ echo "Test it:"
 echo "  open '$DMG_PATH'"
 echo
 echo "Install:"
-echo "  Drag FanControl.app to /Applications, then open it."
+echo "  Drag BreezeFan.app to /Applications, then open it."
 echo "  First launch will prompt for admin password to install the privileged helper."

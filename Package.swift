@@ -6,7 +6,7 @@
 //
 // Build: `swift build`
 // Run tests: open the project in Xcode (after `xcodegen generate`) and ⌘U,
-// or `xcodebuild test -scheme FanControl -destination 'platform=macOS'`.
+// or `xcodebuild test -scheme BreezeFan -destination 'platform=macOS'`.
 
 import PackageDescription
 

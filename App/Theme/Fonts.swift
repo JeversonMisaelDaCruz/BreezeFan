@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Type scale for the FanControl UI. Mirrors the JSX `fontSize`/`letterSpacing` values.
+/// Type scale for the BreezeFan UI. Mirrors the JSX `fontSize`/`letterSpacing` values.
 public enum FCFont {
     /// Default body text: SF Pro 11pt.
     public static let body = Font.system(size: 11, weight: .regular, design: .default)

@@ -16,7 +16,7 @@ enum SMCSelector {
 /// Live SMC reader. Opens a connection to `AppleSMC` service via IOServiceOpen.
 public final class SMCReaderImpl: SMCReading, @unchecked Sendable {
     private var connection: io_connect_t = 0
-    private let queue = DispatchQueue(label: "com.fancontrol.helper.smc.reader")
+    private let queue = DispatchQueue(label: "com.breezefan.helper.smc.reader")
 
     public init() throws {
         let service = IOServiceGetMatchingService(

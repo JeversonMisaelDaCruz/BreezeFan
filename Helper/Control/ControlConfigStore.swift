@@ -1,8 +1,8 @@
 import Foundation
 
-/// Reads / writes `/Library/Application Support/FanControl/control.json`.
+/// Reads / writes `/Library/Application Support/BreezeFan/control.json`.
 public final class ControlConfigStore {
-    public static let path = "/Library/Application Support/FanControl/control.json"
+    public static let path = "/Library/Application Support/BreezeFan/control.json"
     private let fm = FileManager.default
     private let url: URL
 

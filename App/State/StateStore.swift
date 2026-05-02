@@ -1,6 +1,6 @@
 import Foundation
 
-/// Persists app-side UI state to ~/Library/Application Support/FanControl/state.json.
+/// Persists app-side UI state to ~/Library/Application Support/BreezeFan/state.json.
 public struct PersistedAppState: Codable, Equatable {
     public var version: Int
     public var accentHex: String
@@ -52,7 +52,7 @@ public final class StateStore {
         let dir = FileManager.default
             .urls(for: .applicationSupportDirectory, in: .userDomainMask)
             .first!
-            .appendingPathComponent("FanControl", isDirectory: true)
+            .appendingPathComponent("BreezeFan", isDirectory: true)
         return dir.appendingPathComponent("state.json")
     }
 

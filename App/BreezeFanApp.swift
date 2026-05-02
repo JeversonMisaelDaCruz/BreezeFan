@@ -2,7 +2,7 @@ import SwiftUI
 import AppKit
 
 @main
-struct FanControlApp: App {
+struct BreezeFanApp: App {
     @State private var appState = AppState.shared
 
     init() {
@@ -67,7 +67,7 @@ struct FanControlApp: App {
         .windowResizability(.contentSize)
         .commands {
             CommandGroup(replacing: .appInfo) {
-                Button("About FanControl") {
+                Button("About BreezeFan") {
                     NSApp.orderFrontStandardAboutPanel()
                 }
             }
@@ -87,7 +87,7 @@ struct FanControlApp: App {
                             _ = update
                         } else {
                             let alert = NSAlert()
-                            alert.messageText = "FanControl está atualizado"
+                            alert.messageText = "BreezeFan está atualizado"
                             alert.informativeText = "Você está rodando a versão \(AppVersion.current.string)."
                             alert.alertStyle = .informational
                             alert.runModal()

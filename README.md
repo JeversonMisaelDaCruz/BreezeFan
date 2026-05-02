@@ -1,4 +1,4 @@
-# FanControl
+# BreezeFan
 
 <p align="center">
   <strong>Native macOS fan control for MacBook Pro 14" M1 Pro (2021)</strong>
@@ -33,7 +33,7 @@ Replacement for [crystalidea/macs-fan-control](https://github.com/crystalidea/ma
 ./scripts/build-dmg.sh --pretty  # with create-dmg (brew install create-dmg)
 ```
 
-Output: `dist/FanControl-<version>.dmg`. See language-specific docs above for full instructions and Gatekeeper notes.
+Output: `dist/BreezeFan-<version>.dmg`. See language-specific docs above for full instructions and Gatekeeper notes.
 
 ## License
 

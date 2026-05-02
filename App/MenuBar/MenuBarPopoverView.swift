@@ -6,7 +6,7 @@ struct MenuBarPopoverView: View {
     @Environment(AppState.self) private var appState
     @State private var sensorVM = SensorViewModel()
 
-    /// Closure called when user taps "Open FanControl →" — host wires it to popover dismiss + window-front.
+    /// Closure called when user taps "Open BreezeFan →" — host wires it to popover dismiss + window-front.
     var onOpenWindow: () -> Void = {}
 
     var body: some View {
@@ -19,7 +19,7 @@ struct MenuBarPopoverView: View {
             HStack {
                 Spacer()
                 Button(action: onOpenWindow) {
-                    Text("Open FanControl →")
+                    Text("Open BreezeFan →")
                         .font(.system(size: 10, weight: .medium))
                         .foregroundStyle(appState.accentColor)
                 }

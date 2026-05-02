@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Main window content. Mirrors `FanControl/app/main-mvp.jsx`.
+/// Main window content. Mirrors `BreezeFan/app/main-mvp.jsx`.
 struct MainView: View {
     @Environment(AppState.self) private var appState
     @Environment(\.scenePhase) private var scenePhase
@@ -54,7 +54,7 @@ struct MainView: View {
 
     private var header: some View {
         ZStack {
-            Text("FanControl")
+            Text("BreezeFan")
                 .font(FCFont.windowTitle)
                 .foregroundStyle(FCTheme.textPrimary)
         }

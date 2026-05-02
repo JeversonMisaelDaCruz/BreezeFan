@@ -5,7 +5,7 @@ import Foundation
 final class HelperService: NSObject, HelperProtocol, @unchecked Sendable {
     static let shared = HelperService()
 
-    private let queue = DispatchQueue(label: "com.fancontrol.helper.service", qos: .userInitiated)
+    private let queue = DispatchQueue(label: "com.breezefan.helper.service", qos: .userInitiated)
 
     private var sensorPoller: SensorPolling?
     private var modeManager: ModeManaging?

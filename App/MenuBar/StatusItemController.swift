@@ -35,9 +35,9 @@ final class StatusItemController: NSObject {
     private func configureStatusItem() {
         guard let button = statusItem.button else { return }
         let iconName = StatusIcon.iconName()
-        button.image = NSImage(systemSymbolName: iconName, accessibilityDescription: "FanControl")
+        button.image = NSImage(systemSymbolName: iconName, accessibilityDescription: "BreezeFan")
         button.image?.isTemplate = true
-        button.toolTip = "FanControl"
+        button.toolTip = "BreezeFan"
 
         // Receive both left and right clicks; differentiate in handler.
         button.sendAction(on: [.leftMouseUp, .rightMouseUp])
@@ -62,7 +62,7 @@ final class StatusItemController: NSObject {
         rightClickMenu.removeAllItems()
 
         // Version label (disabled, informational)
-        let versionItem = NSMenuItem(title: "FanControl \(AppVersion.current.string)", action: nil, keyEquivalent: "")
+        let versionItem = NSMenuItem(title: "BreezeFan \(AppVersion.current.string)", action: nil, keyEquivalent: "")
         versionItem.isEnabled = false
         rightClickMenu.addItem(versionItem)
 
@@ -93,7 +93,7 @@ final class StatusItemController: NSObject {
 
         rightClickMenu.addItem(.separator())
 
-        let quit = NSMenuItem(title: "Quit FanControl", action: #selector(quitApp), keyEquivalent: "q")
+        let quit = NSMenuItem(title: "Quit BreezeFan", action: #selector(quitApp), keyEquivalent: "q")
         quit.target = self
         rightClickMenu.addItem(quit)
     }
@@ -161,7 +161,7 @@ final class StatusItemController: NSObject {
                 openMainWindow()
             } else {
                 let alert = NSAlert()
-                alert.messageText = "FanControl está atualizado"
+                alert.messageText = "BreezeFan está atualizado"
                 alert.informativeText = "Você está rodando a versão \(AppVersion.current.string)."
                 alert.alertStyle = .informational
                 alert.runModal()
