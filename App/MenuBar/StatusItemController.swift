@@ -61,6 +61,13 @@ final class StatusItemController: NSObject {
     private func configureRightClickMenu() {
         rightClickMenu.removeAllItems()
 
+        // Version label (disabled, informational)
+        let versionItem = NSMenuItem(title: "FanControl \(AppVersion.current.string)", action: nil, keyEquivalent: "")
+        versionItem.isEnabled = false
+        rightClickMenu.addItem(versionItem)
+
+        rightClickMenu.addItem(.separator())
+
         let showWindow = NSMenuItem(title: "Show Window", action: #selector(showWindow), keyEquivalent: "0")
         showWindow.target = self
         rightClickMenu.addItem(showWindow)
@@ -68,6 +75,10 @@ final class StatusItemController: NSObject {
         let editCurve = NSMenuItem(title: "Edit fan curve…", action: #selector(editCurve), keyEquivalent: "e")
         editCurve.target = self
         rightClickMenu.addItem(editCurve)
+
+        let checkUpdates = NSMenuItem(title: "Check for Updates…", action: #selector(checkForUpdates), keyEquivalent: "")
+        checkUpdates.target = self
+        rightClickMenu.addItem(checkUpdates)
 
         rightClickMenu.addItem(.separator())
 
@@ -141,6 +152,21 @@ final class StatusItemController: NSObject {
         applyActivationPolicy()
         configureRightClickMenu()
         AppState.shared.persistToStateStore()
+    }
+
+    @objc private func checkForUpdates() {
+        Task { @MainActor in
+            if let update = await UpdateChecker.shared.checkForUpdates(force: true) {
+                _ = update
+                openMainWindow()
+            } else {
+                let alert = NSAlert()
+                alert.messageText = "FanControl está atualizado"
+                alert.informativeText = "Você está rodando a versão \(AppVersion.current.string)."
+                alert.alertStyle = .informational
+                alert.runModal()
+            }
+        }
     }
 
     @objc private func openLoginItems() {
