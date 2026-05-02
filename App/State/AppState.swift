@@ -41,15 +41,14 @@ final class AppState {
     /// When true, app runs as `.accessory` (no Dock icon). Persisted in state.json.
     var menuBarOnly: Bool = false
 
+    // (Auto-update is now handled by Sparkle — no AppState fields needed.)
+
     /// License gate: only true after the user enters the correct activation key.
     /// While false, the curve editor is locked. Persisted in state.json.
     var curveUnlocked: Bool = false
 
     /// Curve unlock sheet visibility (transient — not persisted).
     var unlockSheetPresented: Bool = false
-
-    /// GitHub Release info when a newer version is available. nil = up-to-date.
-    var availableUpdate: ReleaseInfo? = nil
 
     /// Hardcoded activation key for the curve editor MVP.
     /// NOTE: Stored in plaintext in the binary; trivially extractable. Adequate for

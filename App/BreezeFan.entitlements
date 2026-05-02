@@ -6,5 +6,8 @@
     <false/>
     <key>com.apple.security.files.user-selected.read-write</key>
     <true/>
+    <!-- Sparkle: precisa baixar updates do GitHub Pages / GitHub Releases -->
+    <key>com.apple.security.network.client</key>
+    <true/>
 </dict>
 </plist>

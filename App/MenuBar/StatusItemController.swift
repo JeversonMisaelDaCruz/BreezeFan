@@ -62,7 +62,8 @@ final class StatusItemController: NSObject {
         rightClickMenu.removeAllItems()
 
         // Version label (disabled, informational)
-        let versionItem = NSMenuItem(title: "BreezeFan \(AppVersion.current.string)", action: nil, keyEquivalent: "")
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.0"
+        let versionItem = NSMenuItem(title: "BreezeFan \(version)", action: nil, keyEquivalent: "")
         versionItem.isEnabled = false
         rightClickMenu.addItem(versionItem)
 
@@ -155,18 +156,9 @@ final class StatusItemController: NSObject {
     }
 
     @objc private func checkForUpdates() {
-        Task { @MainActor in
-            if let update = await UpdateChecker.shared.checkForUpdates(force: true) {
-                _ = update
-                openMainWindow()
-            } else {
-                let alert = NSAlert()
-                alert.messageText = "BreezeFan está atualizado"
-                alert.informativeText = "Você está rodando a versão \(AppVersion.current.string)."
-                alert.alertStyle = .informational
-                alert.runModal()
-            }
-        }
+        // Sparkle handles its own UI (dialog with Install/Skip/Remind Later, or
+        // "You're up to date" alert when no update is available).
+        UpdaterController.shared?.checkForUpdates()
     }
 
     @objc private func openLoginItems() {
