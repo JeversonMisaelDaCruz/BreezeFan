@@ -11,10 +11,10 @@ public enum HelperLogger {
 }
 
 extension Logger {
-    func warn(_ msg: @autoclosure () -> String) {
-        self.warning("\(msg(), privacy: .public)")
+    func warn(_ msg: String) {
+        self.warning("\(msg, privacy: .public)")
     }
-    func log(_ msg: @autoclosure () -> String) {
-        self.info("\(msg(), privacy: .public)")
+    func log(_ msg: String) {
+        self.info("\(msg, privacy: .public)")
     }
 }

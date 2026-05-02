@@ -1,13 +1,7 @@
 import SwiftUI
 
-/// Root window container. Replicates `FanControl/app/window-shell.jsx FCWindow`.
-///
-/// Layers, bottom-up:
-/// 1. Linear gradient graphite (top→bottom)
-/// 2. Radial gradient accent glow at the top center
-/// 3. Subtle grain overlay (omitted in MVP — SVG noise pattern)
-/// 4. Content
-/// 5. Traffic lights pinned top-left
+/// Root window container. Background graphite + accent glow.
+/// Traffic lights are the macOS native ones (functional close/min/zoom) — we don't draw decorative ones.
 struct FCWindow<Content: View>: View {
     let content: Content
     @Environment(AppState.self) private var appState
@@ -37,23 +31,12 @@ struct FCWindow<Content: View>: View {
             )
             .allowsHitTesting(false)
 
-            // Layer 3: content
+            // Layer 3: content (top padding leaves room for native traffic lights)
             content
-                .padding(.top, 28) // leave space for traffic lights
+                .padding(.top, 28)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-
-            // Layer 4: traffic lights overlay top-left
-            FCTrafficLights()
-                .padding(.leading, 14)
-                .padding(.top, 14)
         }
         .frame(width: 360, height: 640)
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .strokeBorder(Color.white.opacity(0.06), lineWidth: 0.5)
-        )
-        .shadow(color: Color.black.opacity(0.55), radius: 30, x: 0, y: 24)
     }
 }
 
@@ -62,8 +45,7 @@ struct FCWindow<Content: View>: View {
     FCWindow {
         VStack {
             Spacer()
-            Text("Preview")
-                .foregroundStyle(FCTheme.textPrimary)
+            Text("Preview").foregroundStyle(FCTheme.textPrimary)
             Spacer()
         }
     }

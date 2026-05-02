@@ -8,6 +8,10 @@ public protocol TemperatureReading: AnyObject {
 }
 
 public final class TemperatureReader: TemperatureReading {
+    /// Plausible CPU temperature range in °C. Anything outside is considered a
+    /// decoding artifact (key returned wrong byte width / wrong format).
+    public static let plausibleRange: ClosedRange<Double> = -20.0...120.0
+
     public let smc: SMCReading
     public let ioHID: IOHIDReading
 
@@ -16,21 +20,30 @@ public final class TemperatureReader: TemperatureReading {
         self.ioHID = ioHID
     }
 
+    /// Reads each CPU performance cluster key, filters by plausible range,
+    /// returns the max valid value. Falls back to IOHID only if every key is
+    /// either errored or out-of-range.
     public func maxCPUTemp() -> Double? {
         var values: [Double] = []
         for key in SMCKey.cpuPerfClusters {
-            if case .success(let v) = smc.read(key) {
-                if v > 0 && v < 130 { // sanity range
+            switch smc.read(key) {
+            case .success(let v):
+                if Self.plausibleRange.contains(v) {
                     values.append(v)
+                } else {
+                    HelperLogger.sensors.warn(
+                        "rejected out-of-range temp \(key.code)=\(String(format: "%.1f", v))°C"
+                    )
                 }
+            case .failure:
+                continue
             }
         }
         if let max = values.max() {
             return max
         }
 
-        // Fallback to IOHID. Only invoked when ALL SMC keys failed.
-        if let temp = ioHID.maxCPUTemperature() {
+        if let temp = ioHID.maxCPUTemperature(), Self.plausibleRange.contains(temp) {
             return temp
         }
 

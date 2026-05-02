@@ -159,6 +159,43 @@ public enum HelperError: Error, Codable, Equatable, Sendable, LocalizedError {
     }
 }
 
+/// Hardware fan ceilings reported by the helper after SMC boot read.
+/// `valid` is true when all four readings fell within the plausible range
+/// (Mn ∈ [500, 3000], Mx ∈ [3500, 10000]). Otherwise the helper used safe
+/// defaults (1300/6500) and the app should treat presets cautiously.
+public struct FanCeilings: Codable, Sendable, Equatable {
+    public let f0Mn: Int
+    public let f0Mx: Int
+    public let f1Mn: Int
+    public let f1Mx: Int
+    public let valid: Bool
+
+    public init(f0Mn: Int, f0Mx: Int, f1Mn: Int, f1Mx: Int, valid: Bool) {
+        self.f0Mn = f0Mn
+        self.f0Mx = f0Mx
+        self.f1Mn = f1Mn
+        self.f1Mx = f1Mx
+        self.valid = valid
+    }
+
+    public static let defaults = FanCeilings(
+        f0Mn: 1300, f0Mx: 6500, f1Mn: 1300, f1Mx: 6500, valid: false
+    )
+
+    /// Range constraints used to validate readings.
+    public static let mnRange: ClosedRange<Int> = 500...3000
+    public static let mxRange: ClosedRange<Int> = 3500...10000
+
+    public static func validate(f0Mn: Int, f0Mx: Int, f1Mn: Int, f1Mx: Int) -> Bool {
+        mnRange.contains(f0Mn)
+            && mxRange.contains(f0Mx)
+            && mnRange.contains(f1Mn)
+            && mxRange.contains(f1Mx)
+            && f0Mn < f0Mx
+            && f1Mn < f1Mx
+    }
+}
+
 /// Persisted config for the helper. Lives at /Library/Application Support/FanControl/control.json.
 public struct ControlConfig: Codable, Sendable, Equatable {
     public var version: Int

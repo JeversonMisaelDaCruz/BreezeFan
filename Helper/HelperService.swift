@@ -9,16 +9,19 @@ final class HelperService: NSObject, HelperProtocol, @unchecked Sendable {
 
     private var sensorPoller: SensorPolling?
     private var modeManager: ModeManaging?
+    private var ceilingsProvider: CeilingsProviding?
     private var readOnly: Bool = false
     private var modelIdentifier: String = ""
 
     func wire(
         sensorPoller: SensorPolling,
-        modeManager: ModeManaging
+        modeManager: ModeManaging,
+        ceilingsProvider: CeilingsProviding
     ) {
         queue.async {
             self.sensorPoller = sensorPoller
             self.modeManager = modeManager
+            self.ceilingsProvider = ceilingsProvider
         }
     }
 
@@ -130,6 +133,18 @@ final class HelperService: NSObject, HelperProtocol, @unchecked Sendable {
         }
     }
 
+    func getFanCeilings(reply: @escaping (Data?, Error?) -> Void) {
+        queue.async {
+            let ceilings = self.ceilingsProvider?.ceilings ?? FanCeilings.defaults
+            do {
+                let data = try JSONEncoder().encode(ceilings)
+                reply(data, nil)
+            } catch {
+                reply(nil, error)
+            }
+        }
+    }
+
     func uninstall(reply: @escaping (Bool, Error?) -> Void) {
         queue.async {
             guard let manager = self.modeManager else {
@@ -168,3 +183,9 @@ protocol ModeManaging: AnyObject {
     func applyPreset(_ preset: Preset) throws
     func uninstall() throws
 }
+
+protocol CeilingsProviding: AnyObject {
+    var ceilings: FanCeilings { get }
+}
+
+extension SnapshotBuilder: CeilingsProviding {}

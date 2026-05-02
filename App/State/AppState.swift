@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 import Observation
 
 /// Top-level UI state. `@Observable` (Swift 5.9+) provides automatic dependency tracking.
@@ -33,8 +34,13 @@ final class AppState {
     var isReadOnly: Bool = false
     var modelIdentifier: String = ""
 
+    /// Fan ceilings reported by the helper after SMC boot. nil until first XPC fetch.
+    /// Presets are disabled while nil.
+    var fanCeilings: FanCeilings? = nil
+
     /// Helper status snapshot.
     var helperConnected: Bool = false
+    var helperStatusMessage: String = "Connecting…"
     var smcConflict: Bool = false
 
     /// Last sensor snapshot rendered in UI.
@@ -53,8 +59,24 @@ final class AppState {
             try await HelperClient.shared.uninstall()
             try await HelperClient.shared.uninstallHelper()
         } catch {
-            // Best-effort — uninstall may proceed even if XPC fails.
             try? await HelperClient.shared.uninstallHelper()
+        }
+    }
+
+    /// Forces a fresh installation attempt. Used by the "Retry" banner button.
+    func reinstallHelper() {
+        let result = HelperClient.shared.installHelperIfNeeded()
+        switch result {
+        case .alreadyEnabled, .approved:
+            helperStatusMessage = "Helper installed."
+        case .requiresApproval:
+            helperStatusMessage = "Approve in System Settings → Login Items"
+            // Open System Settings to the right pane
+            if let url = URL(string: "x-apple.systempreferences:com.apple.LoginItems-Settings.extension") {
+                NSWorkspace.shared.open(url)
+            }
+        case .failed(let msg):
+            helperStatusMessage = "Install failed: \(msg)"
         }
     }
 

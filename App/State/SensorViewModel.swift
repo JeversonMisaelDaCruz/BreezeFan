@@ -11,6 +11,12 @@ final class SensorViewModel {
     /// True while the polling task is running.
     var isPolling: Bool = false
 
+    /// True after at least one successful XPC reply.
+    var helperReachable: Bool = false
+
+    /// Last error from the helper (for the offline banner).
+    var lastError: String?
+
     private var task: Task<Void, Never>?
 
     /// Starts polling at 1Hz. Idempotent.
@@ -25,20 +31,26 @@ final class SensorViewModel {
         }
     }
 
-    /// Stops polling. Used when the window goes inactive.
     func stop() {
         task?.cancel()
         task = nil
         isPolling = false
     }
 
-    /// Triggers a single poll immediately. Used when the app comes back to foreground.
     func pollOnce() async {
         do {
             let snap = try await HelperClient.shared.getSnapshot()
             self.snapshot = snap
+            let wasReachable = self.helperReachable
+            self.helperReachable = true
+            self.lastError = nil
+
+            if !wasReachable || AppState.shared.fanCeilings == nil {
+                await fetchCeilingsIfNeeded()
+            }
         } catch {
-            // Helper unreachable — keep last snapshot but mark stale.
+            self.helperReachable = false
+            self.lastError = (error as? LocalizedError)?.errorDescription ?? "\(error)"
             self.snapshot = SensorSnapshot(
                 leftRPM: snapshot.leftRPM,
                 rightRPM: snapshot.rightRPM,
@@ -49,10 +61,23 @@ final class SensorViewModel {
                 stale: true,
                 smcConflict: snapshot.smcConflict
             )
+            AppState.shared.fanCeilings = nil
         }
     }
 
-    // MARK: - Derived view state
+    /// Fetches fan ceilings from helper if not yet cached. Idempotent.
+    private func fetchCeilingsIfNeeded() async {
+        guard AppState.shared.fanCeilings == nil else { return }
+        do {
+            let ceilings = try await HelperClient.shared.getFanCeilings()
+            let m = "fetchCeilings: f0=\(ceilings.f0Mn)..\(ceilings.f0Mx) f1=\(ceilings.f1Mn)..\(ceilings.f1Mx) valid=\(ceilings.valid)"
+            AppLogger.xpc.info("\(m, privacy: .public)")
+            AppState.shared.fanCeilings = ceilings
+        } catch {
+            let m = "fetchCeilings: FAILED \(error)"
+            AppLogger.xpc.info("\(m, privacy: .public)")
+        }
+    }
 
     var fanCount: Int {
         var count = 0
@@ -61,8 +86,10 @@ final class SensorViewModel {
         return count
     }
 
-    /// Subtext below the temp readout.
     func subtext(unit: AppState.TempUnit) -> String {
+        if !helperReachable {
+            return "Helper offline"
+        }
         let activeWord = "\(fanCount) fans active"
         guard let t = snapshot.cpuTemp else {
             return "Sensor unavailable · \(activeWord)"

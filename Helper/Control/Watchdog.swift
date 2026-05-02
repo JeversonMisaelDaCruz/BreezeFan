@@ -42,9 +42,13 @@ public final class Watchdog: @unchecked Sendable {
         task = nil
     }
 
-    /// Single check — public for tests.
+    /// Single check — public for tests. Returns true if recovery fired.
     @discardableResult
     public func checkOnce() -> Bool {
+        // Only check liveness when the control loop is actually supposed to be running.
+        // In Auto mode the loop is intentionally idle; the timestamp not advancing is expected.
+        guard controlLoop.isActive else { return false }
+
         let age = Date().timeIntervalSince(controlLoop.lastTickTimestamp)
         if age > staleThreshold {
             HelperLogger.control.warn("WATCHDOG: control loop stalled for \(age)s, recovering")

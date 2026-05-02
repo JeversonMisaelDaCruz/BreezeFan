@@ -64,40 +64,75 @@ public final class SMCReaderImpl: SMCReading, @unchecked Sendable {
                 switch callStructMethod(input: readInput) {
                 case .failure(let err): return .failure(err)
                 case .success(let output):
-                    return decode(bytes: output.bytes, count: dataSize, declared: key.dataType, raw: dataType)
+                    return decodeDynamic(bytes: output.bytes, count: dataSize, raw: dataType)
                 }
             }
         }
     }
 
-    // MARK: - Decoding
+    // MARK: - Decoding (uses runtime-reported type from SMC)
 
-    private func decode(bytes: SMCBytes, count: Int, declared: SMCKey.DataType, raw: UInt32) -> Result<Double, SMCError> {
+    /// Decodes the bytes based on the FourCC type code returned by SMC at read-time.
+    /// On Apple Silicon, F0Mx/F0Mn are usually `flt ` (float), F0Ac/F0Tg are `flt ` too.
+    /// On Intel, fan keys are `fpe2`. We honor whatever the SMC reports.
+    private func decodeDynamic(bytes: SMCBytes, count: Int, raw: UInt32) -> Result<Double, SMCError> {
         let arr = bytes.toArray(count: count)
-        switch declared {
-        case .fpe2:
-            return .success(FPE2.decode(arr))
-        case .ui8:
-            guard arr.count >= 1 else { return .failure(.decodingFailed) }
-            return .success(Double(arr[0]))
-        case .ui16:
-            guard arr.count >= 2 else { return .failure(.decodingFailed) }
-            return .success(Double(UInt16(arr[0]) << 8 | UInt16(arr[1])))
-        case .ui32:
+        // FourCC codes (ASCII big-endian):
+        //   "fpe2" = 0x66706532, "flt " = 0x666C7420, "ui8 " = 0x75693820,
+        //   "ui16" = 0x75693136, "ui32" = 0x75693332, "sp78" = 0x73703738,
+        //   "si16" = 0x73693136, "si8 " = 0x73693820
+        switch raw {
+        case 0x666C7420: // "flt "
             guard arr.count >= 4 else { return .failure(.decodingFailed) }
-            let v = (UInt32(arr[0]) << 24) | (UInt32(arr[1]) << 16) | (UInt32(arr[2]) << 8) | UInt32(arr[3])
-            return .success(Double(v))
-        case .sp78:
-            // Apple Silicon temps: signed fixed-point with 8 integer bits + 8 fraction bits.
-            guard arr.count >= 2 else { return .failure(.decodingFailed) }
-            let i16 = Int16(bitPattern: (UInt16(arr[0]) << 8) | UInt16(arr[1]))
-            return .success(Double(i16) / 256.0)
-        case .flt:
-            guard arr.count >= 4 else { return .failure(.decodingFailed) }
-            let v = arr.withUnsafeBytes { ptr -> Float in
+            let v = arr.prefix(4).withUnsafeBytes { ptr -> Float in
                 ptr.load(as: Float.self)
             }
             return .success(Double(v))
+
+        case 0x66706532: // "fpe2"
+            return .success(FPE2.decode(arr))
+
+        case 0x73703738: // "sp78"
+            guard arr.count >= 2 else { return .failure(.decodingFailed) }
+            let i16 = Int16(bitPattern: (UInt16(arr[0]) << 8) | UInt16(arr[1]))
+            return .success(Double(i16) / 256.0)
+
+        case 0x75693820: // "ui8 "
+            guard arr.count >= 1 else { return .failure(.decodingFailed) }
+            return .success(Double(arr[0]))
+
+        case 0x75693136: // "ui16"
+            guard arr.count >= 2 else { return .failure(.decodingFailed) }
+            return .success(Double(UInt16(arr[0]) << 8 | UInt16(arr[1])))
+
+        case 0x75693332: // "ui32"
+            guard arr.count >= 4 else { return .failure(.decodingFailed) }
+            let v = (UInt32(arr[0]) << 24) | (UInt32(arr[1]) << 16) | (UInt32(arr[2]) << 8) | UInt32(arr[3])
+            return .success(Double(v))
+
+        case 0x73693136: // "si16"
+            guard arr.count >= 2 else { return .failure(.decodingFailed) }
+            let i16 = Int16(bitPattern: (UInt16(arr[0]) << 8) | UInt16(arr[1]))
+            return .success(Double(i16))
+
+        case 0x73693820: // "si8 "
+            guard arr.count >= 1 else { return .failure(.decodingFailed) }
+            return .success(Double(Int8(bitPattern: arr[0])))
+
+        default:
+            // Fallback: if SMC reports a type we don't know but we got 4 bytes, try float.
+            if arr.count == 4 {
+                let v = arr.withUnsafeBytes { ptr -> Float in ptr.load(as: Float.self) }
+                if v.isFinite, v >= 0, v < 1_000_000 {
+                    return .success(Double(v))
+                }
+            }
+            // Or if we got 2 bytes, try FPE2.
+            if arr.count == 2 {
+                return .success(FPE2.decode(arr))
+            }
+            HelperLogger.smc.warn("SMC unknown dataType FourCC=\(String(format: "0x%08x", raw)) for \(count) bytes")
+            return .failure(.unsupportedDataType(String(format: "0x%08x", raw)))
         }
     }
 

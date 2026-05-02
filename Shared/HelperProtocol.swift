@@ -23,6 +23,10 @@ import Foundation
     /// Returns hardware model identifier (e.g. "MacBookPro18,3") and `readOnly` flag.
     func getModelInfo(reply: @escaping (String, Bool) -> Void)
 
+    /// Returns the cached fan ceilings (F0Mn/F0Mx/F1Mn/F1Mx) read at helper boot.
+    /// JSON-encoded `FanCeilings` inside Data.
+    func getFanCeilings(reply: @escaping (Data?, Error?) -> Void)
+
     /// Reverts SMC to Auto, stops the control loop, removes control.json. Daemon stays installed.
     func uninstall(reply: @escaping (Bool, Error?) -> Void)
 }

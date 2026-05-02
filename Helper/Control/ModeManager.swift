@@ -6,7 +6,9 @@ public final class ModeManager: ModeManaging, @unchecked Sendable {
     public let store: ControlConfigStore
     public let smcWriter: SMCWriting
     public let controlLoop: ControlLoop
+    public let f0Mn: Int
     public let f0Mx: Int
+    public let f1Mn: Int
     public let f1Mx: Int
 
     private let lock = NSLock()
@@ -15,13 +17,17 @@ public final class ModeManager: ModeManaging, @unchecked Sendable {
         store: ControlConfigStore,
         smcWriter: SMCWriting,
         controlLoop: ControlLoop,
+        f0Mn: Int,
         f0Mx: Int,
+        f1Mn: Int,
         f1Mx: Int
     ) {
         self.store = store
         self.smcWriter = smcWriter
         self.controlLoop = controlLoop
+        self.f0Mn = f0Mn
         self.f0Mx = f0Mx
+        self.f1Mn = f1Mn
         self.f1Mx = f1Mx
     }
 
@@ -36,9 +42,15 @@ public final class ModeManager: ModeManaging, @unchecked Sendable {
             cfg.forcedTargetRPM = nil
             HelperLogger.control.log("setMode -> auto")
         case .forced(let rpm):
-            cfg.forcedTargetRPM = rpm
+            let clamped = clampRPM(rpm)
+            if clamped != rpm {
+                HelperLogger.control.warn(
+                    "setMode forced clamp: requested=\(rpm) clamped=\(clamped) (mn=\(f0Mn) mx=\(f0Mx))"
+                )
+            }
+            cfg.forcedTargetRPM = clamped
             controlLoop.start()
-            HelperLogger.control.log("setMode -> forced(\(rpm))")
+            HelperLogger.control.log("setMode -> forced(\(clamped))")
         case .curve:
             controlLoop.start()
             HelperLogger.control.log("setMode -> curve")
@@ -67,5 +79,10 @@ public final class ModeManager: ModeManaging, @unchecked Sendable {
         controlLoop.revertToAuto()
         store.remove()
         HelperLogger.control.log("uninstall — control.json removed, fans back to Auto")
+    }
+
+    /// Clamps an RPM target into `[f0Mn, f0Mx]`. Public so tests can verify boundary behavior.
+    public func clampRPM(_ rpm: Int) -> Int {
+        return min(max(rpm, f0Mn), f0Mx)
     }
 }

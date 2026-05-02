@@ -43,7 +43,9 @@ enum HelperMain {
                 store: store,
                 smcWriter: smcWriter,
                 controlLoop: controlLoop,
+                f0Mn: snapshotBuilder.f0Mn,
                 f0Mx: snapshotBuilder.f0Mx,
+                f1Mn: snapshotBuilder.f1Mn,
                 f1Mx: snapshotBuilder.f1Mx
             )
 
@@ -57,7 +59,11 @@ enum HelperMain {
             watchdog.start()
 
             // Wire to XPC service.
-            HelperService.shared.wire(sensorPoller: pollAdapter, modeManager: modeManager)
+            HelperService.shared.wire(
+                sensorPoller: pollAdapter,
+                modeManager: modeManager,
+                ceilingsProvider: snapshotBuilder
+            )
             HelperService.shared.setReadOnly(!supported, model: model)
 
             HelperLogger.control.log("Helper subsystems initialized — mode=\(cfg.modeKind.rawValue)")

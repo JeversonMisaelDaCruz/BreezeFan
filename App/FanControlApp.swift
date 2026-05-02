@@ -5,16 +5,19 @@ struct FanControlApp: App {
     @State private var appState = AppState.shared
 
     init() {
-        // Best-effort install of the helper. Triggers admin prompt the first time.
+        // Best-effort install attempt on launch.
         let result = HelperClient.shared.installHelperIfNeeded()
+        let state = AppState.shared
         switch result {
-        case .alreadyEnabled, .approved:
-            break
+        case .alreadyEnabled:
+            state.helperConnected = true
+            state.helperStatusMessage = "Helper running."
+        case .approved:
+            state.helperStatusMessage = "Installed. Waiting for daemon to spawn…"
         case .requiresApproval:
-            // User must approve in System Settings → Login Items.
-            break
-        case .failed:
-            break
+            state.helperStatusMessage = "Approve in System Settings → Login Items"
+        case .failed(let msg):
+            state.helperStatusMessage = "Install failed: \(msg)"
         }
     }
 
@@ -47,6 +50,15 @@ struct FanControlApp: App {
                 }
             }
             CommandGroup(after: .appInfo) {
+                Divider()
+                Button("Open System Settings (Login Items)") {
+                    if let url = URL(string: "x-apple.systempreferences:com.apple.LoginItems-Settings.extension") {
+                        NSWorkspace.shared.open(url)
+                    }
+                }
+                Button("Reinstall helper") {
+                    appState.reinstallHelper()
+                }
                 Divider()
                 Button("Open logs in Console…") {
                     LogConsole.open()

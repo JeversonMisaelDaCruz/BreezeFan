@@ -35,30 +35,55 @@ public final class SMCWriterImpl: SMCWriting, @unchecked Sendable {
     }
 
     public func write(_ key: SMCKey, value: Double) -> Result<Void, SMCError> {
+        // Discover real type at write time by reading key info first.
+        var info = SMCParamStruct()
+        info.key = key.fourCC
+        info.data8 = 9 // kSMCGetKeyInfo
+
+        var infoOut = SMCParamStruct()
+        var infoSize = MemoryLayout<SMCParamStruct>.size
+        let infoStatus = withUnsafePointer(to: &info) { inPtr in
+            withUnsafeMutablePointer(to: &infoOut) { outPtr in
+                IOConnectCallStructMethod(connection, SMCSelector.kSMCHandleYPCEvent,
+                                          inPtr, MemoryLayout<SMCParamStruct>.size,
+                                          outPtr, &infoSize)
+            }
+        }
+        guard infoStatus == KERN_SUCCESS, infoOut.result == 0 else {
+            return .failure(.writeFailed(kern: infoStatus))
+        }
+
+        let dataType = infoOut.keyInfo.dataType
+        let dataSize = Int(infoOut.keyInfo.dataSize)
         let bytes: [UInt8]
-        switch key.dataType {
-        case .fpe2:
+
+        switch dataType {
+        case 0x666C7420: // "flt " — most fan keys on Apple Silicon
+            let f = Float(value)
+            bytes = withUnsafeBytes(of: f) { Array($0) }
+        case 0x66706532: // "fpe2" — Intel fan keys
             bytes = FPE2.encode(value)
-        case .ui8:
+        case 0x75693820: // "ui8 "
             bytes = [UInt8(min(max(0, value.rounded()), 255))]
-        case .ui16:
+        case 0x75693136: // "ui16"
             let v = UInt16(min(max(0, value.rounded()), Double(UInt16.max)))
             bytes = [UInt8((v >> 8) & 0xFF), UInt8(v & 0xFF)]
         default:
-            return .failure(.unsupportedDataType(key.dataType.rawValue))
+            HelperLogger.smc.warn("SMCWriter unknown dataType FourCC=\(String(format: "0x%08x", dataType)) for \(key.code)")
+            return .failure(.unsupportedDataType(String(format: "0x%08x", dataType)))
         }
-        return doWrite(key: key, bytes: bytes)
+        return doWrite(key: key, bytes: bytes, dataSize: UInt32(dataSize))
     }
 
     public func writeUInt8(_ key: SMCKey, value: UInt8) -> Result<Void, SMCError> {
-        return doWrite(key: key, bytes: [value])
+        return doWrite(key: key, bytes: [value], dataSize: 1)
     }
 
-    private func doWrite(key: SMCKey, bytes: [UInt8]) -> Result<Void, SMCError> {
+    private func doWrite(key: SMCKey, bytes: [UInt8], dataSize: UInt32) -> Result<Void, SMCError> {
         queue.sync {
             var input = SMCParamStruct()
             input.key = key.fourCC
-            input.keyInfo.dataSize = UInt32(bytes.count)
+            input.keyInfo.dataSize = dataSize
             input.data8 = SMCSelector.kSMCWriteKey
 
             // Pack `bytes` into SMCBytes tuple.

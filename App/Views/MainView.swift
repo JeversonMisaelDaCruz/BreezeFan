@@ -1,8 +1,6 @@
 import SwiftUI
 
 /// Main window content. Mirrors `FanControl/app/main-mvp.jsx`.
-/// Fase 1: temp readout + fan list driven by SensorViewModel.
-/// Fase 2: PresetGrid wires up the bottom Mode section.
 struct MainView: View {
     @Environment(AppState.self) private var appState
     @Environment(\.scenePhase) private var scenePhase
@@ -11,6 +9,10 @@ struct MainView: View {
     var body: some View {
         VStack(spacing: 0) {
             header
+
+            if !sensorVM.helperReachable {
+                helperOfflineBanner
+            }
 
             FCDivider()
 
@@ -46,22 +48,43 @@ struct MainView: View {
             Text("FanControl")
                 .font(FCFont.windowTitle)
                 .foregroundStyle(FCTheme.textPrimary)
-            HStack {
-                Spacer()
-                if appState.isReadOnly {
-                    Text("READ-ONLY")
-                        .font(.system(size: 9, weight: .bold))
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(FCTheme.warn.opacity(0.2))
-                        .foregroundStyle(FCTheme.warn)
-                        .cornerRadius(4)
-                        .padding(.trailing, 12)
-                }
-            }
         }
         .frame(height: 40)
         .frame(maxWidth: .infinity)
+    }
+
+    private var helperOfflineBanner: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 11))
+                .foregroundStyle(FCTheme.warn)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Helper offline")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(FCTheme.textPrimary)
+                Text(sensorVM.lastError ?? "Approve helper in System Settings.")
+                    .font(.system(size: 9))
+                    .foregroundStyle(FCTheme.textMuted)
+                    .lineLimit(2)
+            }
+            Spacer()
+            Button {
+                appState.reinstallHelper()
+                Task { await sensorVM.pollOnce() }
+            } label: {
+                Text("Retry")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(FCTheme.warn)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(FCTheme.warn.opacity(0.15))
+                    .cornerRadius(4)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(FCTheme.warn.opacity(0.08))
     }
 
     private var tempReadout: some View {
@@ -99,6 +122,8 @@ struct MainView: View {
     private var modeSection: some View {
         FCSection(title: "Mode") {
             PresetGrid()
+                .disabled(!sensorVM.helperReachable)
+                .opacity(sensorVM.helperReachable ? 1.0 : 0.4)
         }
     }
 
@@ -117,5 +142,7 @@ struct MainView: View {
         .overlay(alignment: .top) {
             FCDivider().padding(.horizontal, -18)
         }
+        .disabled(!sensorVM.helperReachable)
+        .opacity(sensorVM.helperReachable ? 1.0 : 0.4)
     }
 }

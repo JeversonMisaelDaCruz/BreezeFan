@@ -19,6 +19,9 @@ public final class ControlLoop: @unchecked Sendable {
     private var task: Task<Void, Never>?
     private var cancelled: Bool = false
 
+    /// True when the loop has been started and is actively running.
+    public var isActive: Bool { task != nil && !cancelled }
+
     public init(
         smcReader: SMCReading,
         smcWriter: SMCWriting,
@@ -120,10 +123,19 @@ public final class ControlLoop: @unchecked Sendable {
 
     private func write(target0: Int, target1: Int) {
         // Idempotent re-write of F0Md=1/F1Md=1 — defends against macOS reclaiming control.
-        _ = smcWriter.writeUInt8(.f0Md, value: 1)
-        _ = smcWriter.write(.f0Tg, value: Double(target0))
-        _ = smcWriter.writeUInt8(.f1Md, value: 1)
-        _ = smcWriter.write(.f1Tg, value: Double(target1))
+        let r1 = smcWriter.writeUInt8(.f0Md, value: 1)
+        let r2 = smcWriter.write(.f0Tg, value: Double(target0))
+        let r3 = smcWriter.writeUInt8(.f1Md, value: 1)
+        let r4 = smcWriter.write(.f1Tg, value: Double(target1))
+        if case .failure(let e) = r2 {
+            HelperLogger.smc.warn("write F0Tg=\(target0) failed: \(String(describing: e))")
+        }
+        if case .failure(let e) = r4 {
+            HelperLogger.smc.warn("write F1Tg=\(target1) failed: \(String(describing: e))")
+        }
+        // Suppress per-tick success logs — too noisy. Errors only.
+        _ = r1; _ = r3
+        HelperLogger.control.log("tick: write F0Tg=\(target0) F1Tg=\(target1)")
     }
 
     /// Reverts both fans to system control.

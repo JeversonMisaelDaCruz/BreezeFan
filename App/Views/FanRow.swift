@@ -77,32 +77,28 @@ struct RPMBar: View {
     }
 }
 
-/// Spinning fan icon. Uses SF Symbols with a continuous rotation when duty > 0.
+/// Spinning fan icon. Uses `TimelineView(.animation)` driven by absolute time so
+/// duty changes adjust the rotation speed without cancelling the running animation.
 struct FanGlyph: View {
     let spinDuration: Double?
-    @State private var rotation: Double = 0
+    private static let referenceDate = Date(timeIntervalSinceReferenceDate: 0)
 
     var body: some View {
-        Image(systemName: "fan.fill")
-            .resizable()
-            .scaledToFit()
-            .foregroundStyle(FCTheme.textMuted)
-            .rotationEffect(.degrees(rotation))
-            .onChange(of: spinDuration) { _, new in
-                applyAnimation(duration: new)
-            }
-            .onAppear { applyAnimation(duration: spinDuration) }
+        TimelineView(.animation) { context in
+            let angle = computeAngle(at: context.date)
+            Image(systemName: "fan.fill")
+                .resizable()
+                .scaledToFit()
+                .foregroundStyle(FCTheme.textMuted)
+                .rotationEffect(.degrees(angle))
+        }
     }
 
-    private func applyAnimation(duration: Double?) {
-        if let dur = duration {
-            withAnimation(.linear(duration: dur).repeatForever(autoreverses: false)) {
-                rotation = 360
-            }
-        } else {
-            withAnimation(.default) {
-                rotation = 0
-            }
-        }
+    /// Maps an absolute timestamp + spin duration to a rotation angle.
+    /// When `spinDuration` is nil or the duty is zero, the icon stays at 0°.
+    private func computeAngle(at date: Date) -> Double {
+        guard let dur = spinDuration, dur > 0 else { return 0 }
+        let elapsed = date.timeIntervalSinceReferenceDate
+        return (elapsed * 360.0 / dur).truncatingRemainder(dividingBy: 360.0)
     }
 }
