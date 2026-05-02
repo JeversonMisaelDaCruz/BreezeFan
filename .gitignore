@@ -36,6 +36,10 @@ FanControl.xcodeproj/
 # Helper artifacts (not source)
 PrivilegedHelperTools/
 
+# DMG build output
+dist/
+.build/dmg/
+
 # Claude Code / agentes
 .claude/
 

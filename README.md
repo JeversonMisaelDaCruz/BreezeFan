@@ -26,6 +26,15 @@ Replacement for [crystalidea/macs-fan-control](https://github.com/crystalidea/ma
 
 <!-- Adicione screenshots em docs/img/ quando disponíveis -->
 
+## Building a .dmg installer
+
+```bash
+./scripts/build-dmg.sh           # basic (hdiutil)
+./scripts/build-dmg.sh --pretty  # with create-dmg (brew install create-dmg)
+```
+
+Output: `dist/FanControl-<version>.dmg`. See language-specific docs above for full instructions and Gatekeeper notes.
+
 ## License
 
 Personal-use project. SMC key table derived from [crystalidea/macs-fan-control](https://github.com/crystalidea/macs-fan-control) (LGPL).

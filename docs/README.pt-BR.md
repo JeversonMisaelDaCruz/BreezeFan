@@ -75,6 +75,40 @@ open FanControl.xcodeproj
 xcodebuild -scheme FanControl -destination 'platform=macOS' build
 ```
 
+## Gerar instalador .dmg
+
+Existe um script pronto em `scripts/build-dmg.sh` que faz build em Release, embeda o helper privilegiado, e empacota tudo num `.dmg` arrastável pra `/Applications`:
+
+```bash
+# Versão simples (usa hdiutil nativo)
+./scripts/build-dmg.sh
+
+# Versão "bonita" com background + ícone posicionado
+brew install create-dmg
+./scripts/build-dmg.sh --pretty
+
+# Versão customizada
+./scripts/build-dmg.sh --version 0.2.0
+```
+
+Output em `dist/FanControl-<versão>.dmg` (~600KB).
+
+### Como instalar o .dmg em outra máquina
+
+1. Abrir o `.dmg` (duplo-clique)
+2. Arrastar **FanControl.app** pra **Applications** (atalho mostrado dentro do .dmg)
+3. Abrir o app — primeira execução pede senha admin pra instalar o helper privilegiado
+
+### ⚠️ Aviso sobre Gatekeeper
+
+O `.dmg` é gerado com **assinatura ad-hoc** (sem Apple Developer ID). Em outras máquinas, o macOS vai bloquear na primeira abertura com mensagem do tipo:
+
+> "FanControl não pode ser aberto porque o desenvolvedor não pode ser verificado."
+
+**Workaround**: clique direito no app → **Abrir** → **Abrir mesmo assim**. Faz isso uma vez, macOS lembra.
+
+Pra distribuir publicamente sem esse aviso, precisa de uma conta Apple Developer ($99/ano), assinar com `Developer ID Application` e rodar `notarytool`. Out of scope deste projeto.
+
 ## Como destravar o editor de curva
 
 O editor de curva é protegido por uma chave de ativação:
