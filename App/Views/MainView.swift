@@ -16,6 +16,11 @@ struct MainView: View {
                     .transition(.move(edge: .top).combined(with: .opacity))
             }
 
+            if let update = appState.availableUpdate {
+                updateBanner(update)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
+
             FCDivider()
 
             tempReadout
@@ -33,6 +38,7 @@ struct MainView: View {
             footer
         }
         .animation(FCAnimation.normal, value: sensorVM.helperReachable)
+        .animation(FCAnimation.normal, value: appState.availableUpdate)
         .onAppear { sensorVM.start() }
         .onDisappear { sensorVM.stop() }
         .onChange(of: scenePhase) { _, phase in
@@ -54,6 +60,50 @@ struct MainView: View {
         }
         .frame(height: 40)
         .frame(maxWidth: .infinity)
+    }
+
+    private func updateBanner(_ update: ReleaseInfo) -> some View {
+        HStack(spacing: FCSpacing.sm) {
+            Image(systemName: "arrow.down.circle.fill")
+                .font(.system(size: 11))
+                .foregroundStyle(appState.accentColor)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Nova versão \(update.displayVersion) disponível")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(FCTheme.textPrimary)
+                Text("Atual: \(AppVersion.current.string)")
+                    .font(.system(size: 9))
+                    .foregroundStyle(FCTheme.textMuted)
+            }
+            Spacer()
+            Button {
+                if let url = update.releaseURL {
+                    NSWorkspace.shared.open(url)
+                }
+            } label: {
+                Text("Baixar")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(appState.accentColor)
+                    .padding(.horizontal, FCSpacing.sm)
+                    .padding(.vertical, 3)
+                    .background(appState.accentColor.opacity(0.15))
+                    .cornerRadius(4)
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                appState.availableUpdate = nil
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(FCTheme.textMuted)
+                    .padding(4)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, FCSpacing.md + 2)
+        .padding(.vertical, FCSpacing.sm)
+        .background(appState.accentColor.opacity(0.08))
     }
 
     private var helperOfflineBanner: some View {

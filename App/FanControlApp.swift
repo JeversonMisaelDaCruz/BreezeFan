@@ -27,6 +27,12 @@ struct FanControlApp: App {
 
         // Apply activation policy from persisted setting.
         StatusItemController.shared.applyActivationPolicy()
+
+        // Background update check 30s after launch (don't block startup).
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 30_000_000_000)
+            await UpdateChecker.shared.checkForUpdates()
+        }
     }
 
     var body: some Scene {
@@ -74,6 +80,20 @@ struct FanControlApp: App {
                     }
                 }
                 .keyboardShortcut("0", modifiers: .command)
+                Button("Check for Updates…") {
+                    Task { @MainActor in
+                        if let update = await UpdateChecker.shared.checkForUpdates(force: true) {
+                            // Banner will appear automatically via AppState observation.
+                            _ = update
+                        } else {
+                            let alert = NSAlert()
+                            alert.messageText = "FanControl está atualizado"
+                            alert.informativeText = "Você está rodando a versão \(AppVersion.current.string)."
+                            alert.alertStyle = .informational
+                            alert.runModal()
+                        }
+                    }
+                }
                 Divider()
                 Button("Open System Settings (Login Items)") {
                     if let url = URL(string: "x-apple.systempreferences:com.apple.LoginItems-Settings.extension") {

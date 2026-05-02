@@ -48,6 +48,9 @@ final class AppState {
     /// Curve unlock sheet visibility (transient — not persisted).
     var unlockSheetPresented: Bool = false
 
+    /// GitHub Release info when a newer version is available. nil = up-to-date.
+    var availableUpdate: ReleaseInfo? = nil
+
     /// Hardcoded activation key for the curve editor MVP.
     /// NOTE: Stored in plaintext in the binary; trivially extractable. Adequate for
     /// a personal-use unlock gate, NOT for licensing production software.
