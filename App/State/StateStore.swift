@@ -8,6 +8,7 @@ public struct PersistedAppState: Codable, Equatable {
     public var activeCurve: Curve
     public var activePresetRaw: String?
     public var menuBarOnly: Bool
+    public var curveUnlocked: Bool
 
     public init(
         version: Int = 1,
@@ -15,7 +16,8 @@ public struct PersistedAppState: Codable, Equatable {
         tempUnit: String = "C",
         activeCurve: Curve = .default,
         activePresetRaw: String? = nil,
-        menuBarOnly: Bool = false
+        menuBarOnly: Bool = false,
+        curveUnlocked: Bool = false
     ) {
         self.version = version
         self.accentHex = accentHex
@@ -23,11 +25,12 @@ public struct PersistedAppState: Codable, Equatable {
         self.activeCurve = activeCurve
         self.activePresetRaw = activePresetRaw
         self.menuBarOnly = menuBarOnly
+        self.curveUnlocked = curveUnlocked
     }
 
     public static let defaults = PersistedAppState()
 
-    /// Allow decoding older state.json files that lack `menuBarOnly`.
+    /// Allow decoding older state.json files that lack newer fields.
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         self.version = try c.decodeIfPresent(Int.self, forKey: .version) ?? 1
@@ -36,10 +39,11 @@ public struct PersistedAppState: Codable, Equatable {
         self.activeCurve = try c.decodeIfPresent(Curve.self, forKey: .activeCurve) ?? .default
         self.activePresetRaw = try c.decodeIfPresent(String.self, forKey: .activePresetRaw)
         self.menuBarOnly = try c.decodeIfPresent(Bool.self, forKey: .menuBarOnly) ?? false
+        self.curveUnlocked = try c.decodeIfPresent(Bool.self, forKey: .curveUnlocked) ?? false
     }
 
     private enum CodingKeys: String, CodingKey {
-        case version, accentHex, tempUnit, activeCurve, activePresetRaw, menuBarOnly
+        case version, accentHex, tempUnit, activeCurve, activePresetRaw, menuBarOnly, curveUnlocked
     }
 }
 

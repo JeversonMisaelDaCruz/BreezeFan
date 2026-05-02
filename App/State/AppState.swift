@@ -41,6 +41,33 @@ final class AppState {
     /// When true, app runs as `.accessory` (no Dock icon). Persisted in state.json.
     var menuBarOnly: Bool = false
 
+    /// License gate: only true after the user enters the correct activation key.
+    /// While false, the curve editor is locked. Persisted in state.json.
+    var curveUnlocked: Bool = false
+
+    /// Curve unlock sheet visibility (transient — not persisted).
+    var unlockSheetPresented: Bool = false
+
+    /// Hardcoded activation key for the curve editor MVP.
+    /// NOTE: Stored in plaintext in the binary; trivially extractable. Adequate for
+    /// a personal-use unlock gate, NOT for licensing production software.
+    static let curveActivationKey: String = "Misael4885"
+
+    /// Validates a user-entered key against the activation constant.
+    func validateAndUnlockCurve(_ key: String) -> Bool {
+        let trimmed = key.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed == AppState.curveActivationKey else { return false }
+        curveUnlocked = true
+        persistToStateStore()
+        return true
+    }
+
+    /// Re-locks the curve editor (clears unlock flag). Used by a hidden menu item or for tests.
+    func relockCurve() {
+        curveUnlocked = false
+        persistToStateStore()
+    }
+
     /// Helper status snapshot.
     var helperConnected: Bool = false
     var helperStatusMessage: String = "Connecting…"
@@ -70,6 +97,7 @@ final class AppState {
         self.activeCurve = s.activeCurve
         self.activePreset = s.activePresetRaw.flatMap(Preset.init(rawValue:))
         self.menuBarOnly = s.menuBarOnly
+        self.curveUnlocked = s.curveUnlocked
     }
 
     /// Persists current state to state.json. Called on settings changes.
@@ -80,7 +108,8 @@ final class AppState {
             tempUnit: tempUnit.rawValue,
             activeCurve: activeCurve,
             activePresetRaw: activePreset?.rawValue,
-            menuBarOnly: menuBarOnly
+            menuBarOnly: menuBarOnly,
+            curveUnlocked: curveUnlocked
         )
         try? stateStore.save(s)
     }

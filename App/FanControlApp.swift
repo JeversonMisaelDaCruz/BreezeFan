@@ -35,7 +35,15 @@ struct FanControlApp: App {
                 ZStack {
                     MainView()
 
-                    if appState.curveEditorPresented {
+                    if appState.unlockSheetPresented {
+                        LicenseUnlockSheet(isPresented: Binding(
+                            get: { appState.unlockSheetPresented },
+                            set: { appState.unlockSheetPresented = $0 }
+                        ))
+                        .zIndex(11)
+                    }
+
+                    if appState.curveEditorPresented && appState.curveUnlocked {
                         CurveEditorView(isPresented: Binding(
                             get: { appState.curveEditorPresented },
                             set: { appState.curveEditorPresented = $0 }
@@ -44,6 +52,7 @@ struct FanControlApp: App {
                     }
                 }
                 .animation(FCAnimation.bouncy, value: appState.curveEditorPresented)
+                .animation(FCAnimation.bouncy, value: appState.unlockSheetPresented)
             }
             .environment(appState)
             .frame(width: 360, height: 640)
