@@ -1,0 +1,124 @@
+name: FanControl
+options:
+  bundleIdPrefix: com.fancontrol
+  deploymentTarget:
+    macOS: "14.0"
+  developmentLanguage: en
+  createIntermediateGroups: true
+  groupSortPosition: top
+  generateEmptyDirectories: false
+
+settings:
+  base:
+    SWIFT_VERSION: "5.10"
+    MACOSX_DEPLOYMENT_TARGET: "14.0"
+    CODE_SIGN_STYLE: Automatic
+    CODE_SIGN_IDENTITY: "-"
+    DEVELOPMENT_TEAM: ""
+    ENABLE_HARDENED_RUNTIME: YES
+    ONLY_ACTIVE_ARCH: YES
+    DEAD_CODE_STRIPPING: YES
+    SWIFT_TREAT_WARNINGS_AS_ERRORS: NO
+    GCC_TREAT_WARNINGS_AS_ERRORS: NO
+
+targets:
+  FanControl:
+    type: application
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: App
+      - path: Shared
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.fancontrol.app
+        PRODUCT_NAME: FanControl
+        INFOPLIST_FILE: App/Info.plist
+        INFOPLIST_KEY_LSUIElement: NO
+        INFOPLIST_KEY_NSHumanReadableCopyright: ""
+        INFOPLIST_KEY_LSMinimumSystemVersion: "14.0"
+        ENABLE_APP_SANDBOX: NO
+        CODE_SIGN_ENTITLEMENTS: App/FanControl.entitlements
+        SWIFT_OBJC_BRIDGING_HEADER: ""
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleName: FanControl
+        CFBundleDisplayName: FanControl
+        CFBundleIdentifier: com.fancontrol.app
+        CFBundleShortVersionString: "0.1.0"
+        CFBundleVersion: "1"
+        LSMinimumSystemVersion: "14.0"
+        NSHighResolutionCapable: true
+        NSPrincipalClass: NSApplication
+    dependencies:
+      - target: FanControlHelper
+        embed: false
+    postBuildScripts:
+      - name: "Embed Helper into Library/LaunchDaemons"
+        script: |
+          set -euo pipefail
+          APP_FRAMEWORKS_DIR="${BUILT_PRODUCTS_DIR}/${WRAPPER_NAME}/Contents/Library/LaunchDaemons"
+          APP_HELPERS_DIR="${BUILT_PRODUCTS_DIR}/${WRAPPER_NAME}/Contents/MacOS/Helpers"
+          mkdir -p "$APP_FRAMEWORKS_DIR"
+          mkdir -p "$APP_HELPERS_DIR"
+          # Copy helper binary
+          cp -f "${BUILT_PRODUCTS_DIR}/FanControlHelper" "$APP_HELPERS_DIR/FanControlHelper"
+          # Copy launchd plist
+          cp -f "${SRCROOT}/Helper/com.fancontrol.helper.plist" "$APP_FRAMEWORKS_DIR/com.fancontrol.helper.plist"
+        outputFiles:
+          - $(BUILT_PRODUCTS_DIR)/$(WRAPPER_NAME)/Contents/Library/LaunchDaemons/com.fancontrol.helper.plist
+          - $(BUILT_PRODUCTS_DIR)/$(WRAPPER_NAME)/Contents/MacOS/Helpers/FanControlHelper
+
+  FanControlHelper:
+    type: tool
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: Helper
+      - path: Shared
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.fancontrol.helper
+        PRODUCT_NAME: FanControlHelper
+        INFOPLIST_KEY_LSMinimumSystemVersion: "14.0"
+        ENABLE_HARDENED_RUNTIME: YES
+        SKIP_INSTALL: YES
+        CODE_SIGN_ENTITLEMENTS: Helper/FanControlHelper.entitlements
+    info:
+      path: Helper/Info.plist
+      properties:
+        CFBundleIdentifier: com.fancontrol.helper
+        CFBundleShortVersionString: "0.1.0"
+        CFBundleVersion: "1"
+
+  FanControlTests:
+    type: bundle.unit-test
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: Tests
+      - path: Shared
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.fancontrol.tests
+        PRODUCT_NAME: FanControlTests
+        SWIFT_OBJC_BRIDGING_HEADER: ""
+    dependencies:
+      - target: FanControl
+
+schemes:
+  FanControl:
+    build:
+      targets:
+        FanControlHelper: all
+        FanControl: all
+        FanControlTests: [test]
+    test:
+      targets:
+        - FanControlTests
+      gatherCoverageData: true
+    run:
+      config: Debug
+    archive:
+      config: Release
