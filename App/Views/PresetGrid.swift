@@ -1,20 +1,21 @@
 import SwiftUI
 
 /// 2x2 grid of MVP presets. Buttons disabled until helper provides real fan ceilings.
+/// Keyboard shortcuts: ⌘1=Silent, ⌘2=Balanced, ⌘3=Performance, ⌘4=Max.
 struct PresetGrid: View {
     @Environment(AppState.self) private var appState
     @State private var inFlight: Preset?
     @State private var lastError: String?
 
     private let columns = [
-        GridItem(.flexible(), spacing: 8),
-        GridItem(.flexible(), spacing: 8),
+        GridItem(.flexible(), spacing: FCSpacing.sm),
+        GridItem(.flexible(), spacing: FCSpacing.sm),
     ]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            LazyVGrid(columns: columns, spacing: 8) {
-                ForEach(Preset.allCases) { preset in
+            LazyVGrid(columns: columns, spacing: FCSpacing.sm) {
+                ForEach(Array(Preset.allCases.enumerated()), id: \.element) { index, preset in
                     PresetButton(
                         preset: preset,
                         isActive: appState.activePreset == preset
@@ -22,6 +23,7 @@ struct PresetGrid: View {
                         apply(preset)
                     }
                     .disabled(isDisabled || inFlight != nil)
+                    .keyboardShortcut(KeyEquivalent(shortcutKey(for: index)), modifiers: .command)
                     .overlay(
                         Group {
                             if inFlight == preset {
@@ -37,18 +39,32 @@ struct PresetGrid: View {
                 Text("Aguardando dados do helper…")
                     .font(.system(size: 9))
                     .foregroundStyle(FCTheme.textGhost)
+                    .transition(.opacity)
             }
             if let err = lastError {
                 Text(err)
                     .font(.system(size: 9))
                     .foregroundStyle(FCTheme.danger)
                     .lineLimit(2)
+                    .transition(.opacity)
             }
         }
+        .animation(FCAnimation.fast, value: appState.fanCeilings == nil)
+        .animation(FCAnimation.fast, value: lastError)
     }
 
     private var isDisabled: Bool {
         appState.isReadOnly || appState.fanCeilings == nil
+    }
+
+    private func shortcutKey(for index: Int) -> Character {
+        switch index {
+        case 0: return "1"  // Silent
+        case 1: return "2"  // Balanced
+        case 2: return "3"  // Performance
+        case 3: return "4"  // Max
+        default: return " "
+        }
     }
 
     private func apply(_ preset: Preset) {

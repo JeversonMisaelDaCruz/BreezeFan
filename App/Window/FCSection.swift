@@ -5,15 +5,15 @@ struct FCSection<Content: View, Action: View>: View {
     let title: String?
     let action: Action?
     let content: Content
-    var horizontalPadding: CGFloat = 18
-    var topPadding: CGFloat = 12
-    var bottomPadding: CGFloat = 10
+    var horizontalPadding: CGFloat = FCSpacing.lg
+    var topPadding: CGFloat = FCSpacing.md
+    var bottomPadding: CGFloat = FCSpacing.sm
 
     init(
         title: String? = nil,
-        horizontalPadding: CGFloat = 18,
-        topPadding: CGFloat = 12,
-        bottomPadding: CGFloat = 10,
+        horizontalPadding: CGFloat = FCSpacing.lg,
+        topPadding: CGFloat = FCSpacing.md,
+        bottomPadding: CGFloat = FCSpacing.sm,
         @ViewBuilder content: () -> Content,
         @ViewBuilder action: () -> Action
     ) {
@@ -26,7 +26,7 @@ struct FCSection<Content: View, Action: View>: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: FCSpacing.sm) {
             if title != nil || !(action is EmptyView) {
                 HStack {
                     if let title {
@@ -50,9 +50,9 @@ struct FCSection<Content: View, Action: View>: View {
 extension FCSection where Action == EmptyView {
     init(
         title: String? = nil,
-        horizontalPadding: CGFloat = 18,
-        topPadding: CGFloat = 12,
-        bottomPadding: CGFloat = 10,
+        horizontalPadding: CGFloat = FCSpacing.lg,
+        topPadding: CGFloat = FCSpacing.md,
+        bottomPadding: CGFloat = FCSpacing.sm,
         @ViewBuilder content: () -> Content
     ) {
         self.init(

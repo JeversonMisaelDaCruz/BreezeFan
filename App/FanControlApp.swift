@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 @main
 struct FanControlApp: App {
@@ -19,6 +20,13 @@ struct FanControlApp: App {
         case .failed(let msg):
             state.helperStatusMessage = "Install failed: \(msg)"
         }
+
+        // Bring up the menu bar status item BEFORE the window so the icon is
+        // visible immediately at launch.
+        _ = StatusItemController.shared
+
+        // Apply activation policy from persisted setting.
+        StatusItemController.shared.applyActivationPolicy()
     }
 
     var body: some Scene {
@@ -35,8 +43,7 @@ struct FanControlApp: App {
                         .zIndex(10)
                     }
                 }
-                .animation(.spring(response: 0.26, dampingFraction: 0.85),
-                           value: appState.curveEditorPresented)
+                .animation(FCAnimation.bouncy, value: appState.curveEditorPresented)
             }
             .environment(appState)
             .frame(width: 360, height: 640)
@@ -50,6 +57,14 @@ struct FanControlApp: App {
                 }
             }
             CommandGroup(after: .appInfo) {
+                Divider()
+                Button("Show Window") {
+                    NSApp.activate(ignoringOtherApps: true)
+                    for window in NSApp.windows where window.canBecomeKey {
+                        window.makeKeyAndOrderFront(nil)
+                    }
+                }
+                .keyboardShortcut("0", modifiers: .command)
                 Divider()
                 Button("Open System Settings (Login Items)") {
                     if let url = URL(string: "x-apple.systempreferences:com.apple.LoginItems-Settings.extension") {

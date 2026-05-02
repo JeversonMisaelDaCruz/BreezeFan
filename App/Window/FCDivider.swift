@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Hairline divider used between sections. Mirrors `FCDivider` in `atoms.jsx`.
 struct FCDivider: View {
-    var inset: CGFloat = 18
+    var inset: CGFloat = FCSpacing.lg
 
     var body: some View {
         Rectangle()

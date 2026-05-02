@@ -38,6 +38,9 @@ final class AppState {
     /// Presets are disabled while nil.
     var fanCeilings: FanCeilings? = nil
 
+    /// When true, app runs as `.accessory` (no Dock icon). Persisted in state.json.
+    var menuBarOnly: Bool = false
+
     /// Helper status snapshot.
     var helperConnected: Bool = false
     var helperStatusMessage: String = "Connecting…"
@@ -52,7 +55,35 @@ final class AppState {
     /// Singleton.
     @MainActor static let shared = AppState()
 
-    private init() {}
+    private let stateStore = StateStore()
+
+    private init() {
+        loadFromStateStore()
+    }
+
+    /// Loads persisted preferences from state.json.
+    func loadFromStateStore() {
+        let s = stateStore.load()
+        self.accentHex = s.accentHex
+        self.accentColor = Color(hex: s.accentHex)
+        self.tempUnit = TempUnit(rawValue: s.tempUnit) ?? .celsius
+        self.activeCurve = s.activeCurve
+        self.activePreset = s.activePresetRaw.flatMap(Preset.init(rawValue:))
+        self.menuBarOnly = s.menuBarOnly
+    }
+
+    /// Persists current state to state.json. Called on settings changes.
+    func persistToStateStore() {
+        let s = PersistedAppState(
+            version: 1,
+            accentHex: accentHex,
+            tempUnit: tempUnit.rawValue,
+            activeCurve: activeCurve,
+            activePresetRaw: activePreset?.rawValue,
+            menuBarOnly: menuBarOnly
+        )
+        try? stateStore.save(s)
+    }
 
     func uninstallHelper() async {
         do {

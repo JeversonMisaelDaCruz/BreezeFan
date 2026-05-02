@@ -5,6 +5,7 @@ struct MainView: View {
     @Environment(AppState.self) private var appState
     @Environment(\.scenePhase) private var scenePhase
     @State private var sensorVM = SensorViewModel()
+    @State private var footerHovered = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -12,6 +13,7 @@ struct MainView: View {
 
             if !sensorVM.helperReachable {
                 helperOfflineBanner
+                    .transition(.move(edge: .top).combined(with: .opacity))
             }
 
             FCDivider()
@@ -30,6 +32,7 @@ struct MainView: View {
 
             footer
         }
+        .animation(FCAnimation.normal, value: sensorVM.helperReachable)
         .onAppear { sensorVM.start() }
         .onDisappear { sensorVM.stop() }
         .onChange(of: scenePhase) { _, phase in
@@ -54,7 +57,7 @@ struct MainView: View {
     }
 
     private var helperOfflineBanner: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: FCSpacing.sm) {
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.system(size: 11))
                 .foregroundStyle(FCTheme.warn)
@@ -75,26 +78,28 @@ struct MainView: View {
                 Text("Retry")
                     .font(.system(size: 10, weight: .semibold))
                     .foregroundStyle(FCTheme.warn)
-                    .padding(.horizontal, 8)
+                    .padding(.horizontal, FCSpacing.sm)
                     .padding(.vertical, 3)
                     .background(FCTheme.warn.opacity(0.15))
                     .cornerRadius(4)
             }
             .buttonStyle(.plain)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
+        .padding(.horizontal, FCSpacing.md + 2)
+        .padding(.vertical, FCSpacing.sm)
         .background(FCTheme.warn.opacity(0.08))
     }
 
     private var tempReadout: some View {
-        FCSection(title: "CPU temperature", topPadding: 16, bottomPadding: 12) {
+        FCSection(title: "CPU temperature", topPadding: FCSpacing.lg, bottomPadding: FCSpacing.md) {
             VStack(alignment: .leading, spacing: 6) {
-                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                HStack(alignment: .firstTextBaseline, spacing: FCSpacing.xs) {
                     Text(appState.formatTemp(sensorVM.snapshot.cpuTemp))
                         .font(FCFont.display)
                         .foregroundStyle(FCTheme.textPrimary)
                         .fcTabularNums()
+                        .contentTransition(.numericText())
+                        .animation(.easeOut(duration: 0.1), value: sensorVM.snapshot.cpuTemp)
                     Text(appState.tempUnitSuffix())
                         .font(.system(size: 18, weight: .light))
                         .foregroundStyle(FCTheme.textMuted)
@@ -133,16 +138,24 @@ struct MainView: View {
         } label: {
             Text("Edit fan curve →")
                 .font(FCFont.body)
-                .foregroundStyle(FCTheme.textGhost)
+                .foregroundStyle(footerHovered ? FCTheme.textMuted : FCTheme.textGhost)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
+                .padding(.vertical, FCSpacing.md)
         }
         .buttonStyle(.plain)
-        .background(Color.white.opacity(0.02))
+        .background(footerHovered ? Color.white.opacity(0.05) : Color.white.opacity(0.02))
         .overlay(alignment: .top) {
-            FCDivider().padding(.horizontal, -18)
+            FCDivider().padding(.horizontal, -FCSpacing.lg)
         }
+        .keyboardShortcut("e", modifiers: .command)
         .disabled(!sensorVM.helperReachable)
         .opacity(sensorVM.helperReachable ? 1.0 : 0.4)
+        .onHover { hovering in
+            footerHovered = hovering
+            if sensorVM.helperReachable {
+                if hovering { NSCursor.pointingHand.set() } else { NSCursor.arrow.set() }
+            }
+        }
+        .animation(FCAnimation.fast, value: footerHovered)
     }
 }

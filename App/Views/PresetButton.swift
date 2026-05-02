@@ -1,11 +1,13 @@
 import SwiftUI
 
 /// One preset button. Mirrors `PresetBtn` in the JSX (atoms.jsx).
+/// Hover and active state changes animated with FCAnimation.fast / .normal.
 struct PresetButton: View {
     let preset: Preset
     let isActive: Bool
     let action: () -> Void
     @Environment(AppState.self) private var appState
+    @Environment(\.isEnabled) private var isEnabled
     @State private var hovered = false
 
     var body: some View {
@@ -16,30 +18,42 @@ struct PresetButton: View {
                     .foregroundStyle(isActive ? appState.accentColor : FCTheme.textPrimary)
             }
             .frame(maxWidth: .infinity)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
+            .padding(.horizontal, FCSpacing.md)
+            .padding(.vertical, FCSpacing.sm + 2)
             .background(background)
             .overlay(
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
                     .strokeBorder(border, lineWidth: 0.5)
             )
             .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel("\(preset.displayName) preset")
         .accessibilityValue(isActive ? "selected" : "")
-        .onHover { hovered = $0 }
-        .animation(.easeInOut(duration: 0.15), value: isActive)
+        .onHover { newValue in
+            hovered = newValue
+            if isEnabled {
+                if newValue {
+                    NSCursor.pointingHand.set()
+                } else {
+                    NSCursor.arrow.set()
+                }
+            }
+        }
+        .animation(FCAnimation.fast, value: hovered)
+        .animation(FCAnimation.normal, value: isActive)
     }
 
     private var background: Color {
         if isActive { return appState.accentColor.opacity(0.15) }
-        if hovered  { return Color.white.opacity(0.05) }
+        if hovered && isEnabled { return Color.white.opacity(0.07) }
         return Color.white.opacity(0.03)
     }
 
     private var border: Color {
         if isActive { return appState.accentColor.opacity(0.50) }
+        if hovered && isEnabled { return Color.white.opacity(0.10) }
         return Color.white.opacity(0.06)
     }
 }

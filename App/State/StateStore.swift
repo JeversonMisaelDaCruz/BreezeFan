@@ -7,22 +7,40 @@ public struct PersistedAppState: Codable, Equatable {
     public var tempUnit: String
     public var activeCurve: Curve
     public var activePresetRaw: String?
+    public var menuBarOnly: Bool
 
     public init(
         version: Int = 1,
         accentHex: String = "#3b82f6",
         tempUnit: String = "C",
         activeCurve: Curve = .default,
-        activePresetRaw: String? = nil
+        activePresetRaw: String? = nil,
+        menuBarOnly: Bool = false
     ) {
         self.version = version
         self.accentHex = accentHex
         self.tempUnit = tempUnit
         self.activeCurve = activeCurve
         self.activePresetRaw = activePresetRaw
+        self.menuBarOnly = menuBarOnly
     }
 
     public static let defaults = PersistedAppState()
+
+    /// Allow decoding older state.json files that lack `menuBarOnly`.
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.version = try c.decodeIfPresent(Int.self, forKey: .version) ?? 1
+        self.accentHex = try c.decodeIfPresent(String.self, forKey: .accentHex) ?? "#3b82f6"
+        self.tempUnit = try c.decodeIfPresent(String.self, forKey: .tempUnit) ?? "C"
+        self.activeCurve = try c.decodeIfPresent(Curve.self, forKey: .activeCurve) ?? .default
+        self.activePresetRaw = try c.decodeIfPresent(String.self, forKey: .activePresetRaw)
+        self.menuBarOnly = try c.decodeIfPresent(Bool.self, forKey: .menuBarOnly) ?? false
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case version, accentHex, tempUnit, activeCurve, activePresetRaw, menuBarOnly
+    }
 }
 
 public final class StateStore {
