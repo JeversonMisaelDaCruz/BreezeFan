@@ -133,19 +133,12 @@ struct MainView: View {
     }
 
     private var footer: some View {
-        // The button label changes based on lock state but always responds to ⌘E.
-        Button(action: handleFooterTap) {
-            HStack(spacing: FCSpacing.xs) {
-                if !appState.curveUnlocked {
-                    Image(systemName: "lock.fill")
-                        .font(.system(size: 10, weight: .semibold))
-                }
-                Text(footerLabel)
-                    .font(FCFont.body)
-            }
-            .foregroundStyle(footerForegroundColor)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, FCSpacing.md)
+        Button(action: { appState.curveEditorPresented = true }) {
+            Text("Edit fan curve →")
+                .font(FCFont.body)
+                .foregroundStyle(footerHovered ? FCTheme.textMuted : FCTheme.textGhost)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, FCSpacing.md)
         }
         .buttonStyle(.plain)
         .background(footerHovered ? Color.white.opacity(0.05) : Color.white.opacity(0.02))
@@ -162,25 +155,5 @@ struct MainView: View {
             }
         }
         .animation(FCAnimation.fast, value: footerHovered)
-        .animation(FCAnimation.normal, value: appState.curveUnlocked)
-    }
-
-    private var footerLabel: String {
-        appState.curveUnlocked ? "Edit fan curve →" : "Unlock fan curve"
-    }
-
-    private var footerForegroundColor: Color {
-        if !appState.curveUnlocked {
-            return footerHovered ? appState.accentColor : FCTheme.textMuted
-        }
-        return footerHovered ? FCTheme.textMuted : FCTheme.textGhost
-    }
-
-    private func handleFooterTap() {
-        if appState.curveUnlocked {
-            appState.curveEditorPresented = true
-        } else {
-            appState.unlockSheetPresented = true
-        }
     }
 }

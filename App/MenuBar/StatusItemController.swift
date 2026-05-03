@@ -141,11 +141,7 @@ final class StatusItemController: NSObject {
 
     @objc private func editCurve() {
         openMainWindow()
-        if AppState.shared.curveUnlocked {
-            AppState.shared.curveEditorPresented = true
-        } else {
-            AppState.shared.unlockSheetPresented = true
-        }
+        AppState.shared.curveEditorPresented = true
     }
 
     @objc private func toggleMenuBarOnly() {
