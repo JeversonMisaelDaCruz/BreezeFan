@@ -2,8 +2,8 @@
 // Inspired by mac-stats.com: minimal, dark, big hero, single-page.
 // i18n PT/EN auto-detected from browser.
 
-// Purchase link (Stripe, Lemon Squeezy, Gumroad — whatever the active gateway is).
-const PURCHASE_URL = 'https://buy.stripe.com/your-link-here';
+// Purchase link — Lemon Squeezy checkout for BreezeFan Pro ($3 one-time).
+const PURCHASE_URL = 'https://breezefan.lemonsqueezy.com/checkout/buy/1641c67f-bc88-49c2-95cb-07b5dd277da3?discount=0';
 // Latest GitHub Release page (user picks DMG asset to download).
 const DOWNLOAD_URL = 'https://github.com/JeversonMisaelDaCruz/Macfancontrol/releases/latest';
 const VERSION = 'v1.0.0';
