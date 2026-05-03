@@ -2,7 +2,7 @@
 // Inspired by mac-stats.com: minimal, dark, big hero, single-page.
 // i18n PT/EN auto-detected from browser.
 
-// Purchase link — Lemon Squeezy checkout for BreezeFan Pro ($3 one-time).
+// Purchase link — Lemon Squeezy checkout for BreezeFan Pro (US$6 / R$ 30, one-time).
 const PURCHASE_URL = 'https://breezefan.lemonsqueezy.com/checkout/buy/1641c67f-bc88-49c2-95cb-07b5dd277da3?discount=0';
 // Latest GitHub Release page (user picks DMG asset to download).
 const DOWNLOAD_URL = 'https://github.com/JeversonMisaelDaCruz/Macfancontrol/releases/latest';
@@ -15,15 +15,15 @@ const I18N = {
     nav_download: 'Download',
     hero_eyebrow: 'macOS fan control',
     hero_title: 'Take control of your Mac\u2019s fans.',
-    hero_sub: 'A tiny menu‑bar app that monitors temperature and sets fan speed your way. Free to use forever — unlock custom curves once for $3.',
+    hero_sub: 'A tiny menu‑bar app that monitors temperature and sets fan speed your way. Free to use forever — unlock custom curves once for $6.',
     hero_cta_primary: 'Download for Mac',
-    hero_cta_secondary: 'Unlock Pro — $3',
+    hero_cta_secondary: 'Unlock Pro — $6',
     hero_req: 'Requires macOS 12 or later · Apple Silicon & Intel',
     stat_1_n: '0',
     stat_1_l: 'Background CPU',
     stat_2_n: '<1MB',
     stat_2_l: 'Memory footprint',
-    stat_3_n: '$3',
+    stat_3_n: '$6',
     stat_3_l: 'Pro · pay once',
 
     feat_title: 'Everything you need. Nothing you don\u2019t.',
@@ -56,7 +56,7 @@ const I18N = {
 
     pro_badge: 'Pro',
     pro_t: 'Custom curves',
-    pro_p: '$3',
+    pro_p: '$6',
     pro_p_sub: 'one‑time payment',
     pro_1: 'Everything in Free',
     pro_2: 'Build your own fan curve',
@@ -75,15 +75,15 @@ const I18N = {
     nav_download: 'Baixar',
     hero_eyebrow: 'Controle de Fans para macOS',
     hero_title: 'Controle os Fans do seu Mac.',
-    hero_sub: 'Um app discreto na barra de menu que monitora a temperatura e ajusta a velocidade das fans do seu jeito. Grátis pra sempre — desbloqueie curvas personalizadas por $3, pagamento único.',
+    hero_sub: 'Um app discreto na barra de menu que monitora a temperatura e ajusta a velocidade das fans do seu jeito. Grátis pra sempre — desbloqueie curvas personalizadas por R$ 30, pagamento único.',
     hero_cta_primary: 'Baixar para Mac',
-    hero_cta_secondary: 'Desbloquear Pro — $3',
+    hero_cta_secondary: 'Desbloquear Pro — R$ 30',
     hero_req: 'Requer macOS 12 ou superior · Apple Silicon & Intel',
     stat_1_n: '0',
     stat_1_l: 'CPU em segundo plano',
     stat_2_n: '<1MB',
     stat_2_l: 'Uso de memória',
-    stat_3_n: '$3',
+    stat_3_n: 'R$ 30',
     stat_3_l: 'Pro · pague uma vez',
 
     feat_title: 'Tudo que você precisa. Nada além.',
@@ -116,7 +116,7 @@ const I18N = {
 
     pro_badge: 'Pro',
     pro_t: 'Curvas personalizadas',
-    pro_p: '$3',
+    pro_p: 'R$ 30',
     pro_p_sub: 'pagamento único',
     pro_1: 'Tudo do Free',
     pro_2: 'Crie sua própria curva',
