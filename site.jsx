@@ -2,29 +2,25 @@
 // Inspired by mac-stats.com: minimal, dark, big hero, single-page.
 // i18n PT/EN auto-detected from browser.
 
-// Purchase link — Lemon Squeezy checkout for BreezeFan Pro (US$6 / R$ 30, one-time).
-const PURCHASE_URL = 'https://breezefan.lemonsqueezy.com/checkout/buy/1641c67f-bc88-49c2-95cb-07b5dd277da3?discount=0';
 // Latest GitHub Release page (user picks DMG asset to download).
 const DOWNLOAD_URL = 'https://github.com/JeversonMisaelDaCruz/Macfancontrol/releases/latest';
-const VERSION = 'v1.0.0';
+const VERSION = 'v0.4.0';
 
 const I18N = {
   en: {
     nav_features: 'Features',
-    nav_pricing: 'Pricing',
     nav_download: 'Download',
     hero_eyebrow: 'macOS fan control',
     hero_title: 'Take control of your Mac\u2019s fans.',
-    hero_sub: 'A tiny menu‑bar app that monitors temperature and sets fan speed your way. Free to use forever — unlock custom curves once for $6.',
+    hero_sub: 'A tiny menu‑bar app that monitors temperature and sets fan speed your way. Free and open‑source.',
     hero_cta_primary: 'Download for Mac',
-    hero_cta_secondary: 'Unlock Pro — $6',
-    hero_req: 'Requires macOS 12 or later · Apple Silicon & Intel',
+    hero_req: 'Requires macOS 14 or later · Apple Silicon',
     stat_1_n: '0',
     stat_1_l: 'Background CPU',
     stat_2_n: '<1MB',
     stat_2_l: 'Memory footprint',
-    stat_3_n: '$6',
-    stat_3_l: 'Pro · pay once',
+    stat_3_n: '100%',
+    stat_3_l: 'Open source',
 
     feat_title: 'Everything you need. Nothing you don\u2019t.',
     feat_sub: 'Designed for Mac. Built to stay out of the way.',
@@ -34,35 +30,13 @@ const I18N = {
     f2_t: 'Four built‑in modes',
     f2_d: 'Silent, Balanced, Performance, Max — switch with one click.',
     f3_t: 'Custom fan curves',
-    f3_d: 'Define exactly how your fans ramp up. Step by step. Pro feature.',
+    f3_d: 'Define exactly how your fans ramp up. Step by step.',
     f4_t: 'Native and lightweight',
     f4_d: 'Built with Swift. Zero background CPU when idle.',
     f5_t: 'Privacy first',
     f5_d: 'No accounts, no tracking, no cloud. Everything stays on your Mac.',
     f6_t: 'Apple Silicon ready',
-    f6_d: 'Optimized for M‑series Macs. Works on Intel too.',
-
-    pricing_title: 'One price. One time. Forever.',
-    pricing_sub: 'Try the free version, unlock Pro when you\u2019re ready.',
-    free_badge: 'Free',
-    free_t: 'Free forever',
-    free_p: '$0',
-    free_p_sub: 'no signup',
-    free_1: 'Live temperature & RPM',
-    free_2: 'Silent, Balanced, Performance, Max',
-    free_3: 'Menu bar widget',
-    free_4: 'All future free updates',
-    free_cta: 'Download free',
-
-    pro_badge: 'Pro',
-    pro_t: 'Custom curves',
-    pro_p: '$6',
-    pro_p_sub: 'one‑time payment',
-    pro_1: 'Everything in Free',
-    pro_2: 'Build your own fan curve',
-    pro_3: 'Unlimited curve steps',
-    pro_4: 'Lifetime access — no subscription',
-    pro_cta: 'Unlock Pro',
+    f6_d: 'Optimized for M‑series Macs.',
 
     foot_made: 'Made with care for macOS',
     foot_priv: 'Privacy',
@@ -71,20 +45,18 @@ const I18N = {
   },
   pt: {
     nav_features: 'Funcionalidades',
-    nav_pricing: 'Preço',
     nav_download: 'Baixar',
     hero_eyebrow: 'Controle de Fans para macOS',
     hero_title: 'Controle os Fans do seu Mac.',
-    hero_sub: 'Um app discreto na barra de menu que monitora a temperatura e ajusta a velocidade das fans do seu jeito. Grátis pra sempre — desbloqueie curvas personalizadas por R$ 30, pagamento único.',
+    hero_sub: 'Um app discreto na barra de menu que monitora temperatura e ajusta a velocidade das fans do seu jeito. Gratuito e código aberto.',
     hero_cta_primary: 'Baixar para Mac',
-    hero_cta_secondary: 'Desbloquear Pro — R$ 30',
-    hero_req: 'Requer macOS 12 ou superior · Apple Silicon & Intel',
+    hero_req: 'Requer macOS 14 ou superior · Apple Silicon',
     stat_1_n: '0',
     stat_1_l: 'CPU em segundo plano',
     stat_2_n: '<1MB',
     stat_2_l: 'Uso de memória',
-    stat_3_n: 'R$ 30',
-    stat_3_l: 'Pro · pague uma vez',
+    stat_3_n: '100%',
+    stat_3_l: 'Código aberto',
 
     feat_title: 'Tudo que você precisa. Nada além.',
     feat_sub: 'Feito para o Mac. Pensado pra não atrapalhar.',
@@ -94,35 +66,13 @@ const I18N = {
     f2_t: 'Quatro modos prontos',
     f2_d: 'Silent, Balanced, Performance e Max — alterne com um clique.',
     f3_t: 'Curvas personalizadas',
-    f3_d: 'Defina exatamente como suas fans aceleram. Passo a passo. Recurso Pro.',
+    f3_d: 'Defina exatamente como suas fans aceleram. Passo a passo.',
     f4_t: 'Nativo e leve',
     f4_d: 'Feito em Swift. Zero CPU em segundo plano quando ocioso.',
     f5_t: 'Privacidade primeiro',
     f5_d: 'Sem contas, sem rastreamento, sem nuvem. Tudo fica no seu Mac.',
     f6_t: 'Pronto para Apple Silicon',
-    f6_d: 'Otimizado para Macs com chip M. Funciona em Intel também.',
-
-    pricing_title: 'Um preço. Uma vez. Pra sempre.',
-    pricing_sub: 'Experimente a versão grátis, desbloqueie o Pro quando quiser.',
-    free_badge: 'Free',
-    free_t: 'Grátis pra sempre',
-    free_p: '$0',
-    free_p_sub: 'sem cadastro',
-    free_1: 'Temperatura e RPM ao vivo',
-    free_2: 'Silent, Balanced, Performance, Max',
-    free_3: 'Widget na barra de menu',
-    free_4: 'Atualizações grátis pra sempre',
-    free_cta: 'Baixar grátis',
-
-    pro_badge: 'Pro',
-    pro_t: 'Curvas personalizadas',
-    pro_p: 'R$ 30',
-    pro_p_sub: 'pagamento único',
-    pro_1: 'Tudo do Free',
-    pro_2: 'Crie sua própria curva',
-    pro_3: 'Quantos passos quiser',
-    pro_4: 'Acesso vitalício — sem assinatura',
-    pro_cta: 'Desbloquear Pro',
+    f6_d: 'Otimizado para Macs com chip M.',
 
     foot_made: 'Feito com carinho para macOS',
     foot_priv: 'Privacidade',
@@ -153,7 +103,6 @@ function Site() {
       <Nav t={t} lang={lang} switchLang={switchLang} />
       <Hero t={t} />
       <Features t={t} />
-      <Pricing t={t} />
       <Footer t={t} lang={lang} switchLang={switchLang} />
     </div>
   );
@@ -176,7 +125,6 @@ function Nav({ t, lang, switchLang }) {
         </a>
         <div style={{ flex: 1 }} />
         <a href="#features" style={navLink}>{t.nav_features}</a>
-        <a href="#pricing" style={navLink}>{t.nav_pricing}</a>
         <a href="#download" style={{
           ...navLink, padding: '7px 14px', borderRadius: 8,
           background: 'rgba(255,255,255,0.08)',
@@ -272,9 +220,6 @@ function Hero({ t }) {
           <a href={DOWNLOAD_URL} style={primaryBtn}>
             <svg width="14" height="17" viewBox="0 0 14 17" fill="currentColor"><path d="M11.6 9c0-2 1.6-2.9 1.7-3-1-1.4-2.4-1.6-3-1.6-1.2-.1-2.5.7-3.1.7-.6 0-1.6-.7-2.7-.7-1.4 0-2.6.8-3.4 2C-.5 8.8.6 12.7 2 14.8c.7 1 1.5 2.2 2.6 2.2 1 0 1.5-.7 2.8-.7 1.3 0 1.7.7 2.8.7 1.2 0 1.9-1 2.7-2 .8-1.1 1.1-2.2 1.2-2.3-.1 0-2.4-1-2.5-3.7zM9.7 3c.5-.7.9-1.6.8-2.6-.8 0-1.7.5-2.3 1.2-.5.6-.9 1.6-.8 2.5.9.1 1.8-.5 2.3-1.1z"/></svg>
             {t.hero_cta_primary}
-          </a>
-          <a href={PURCHASE_URL} style={secondaryBtn}>
-            {t.hero_cta_secondary}
           </a>
         </div>
         <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>{t.hero_req}</div>
@@ -399,7 +344,7 @@ function Features({ t }) {
   const features = [
     { icon: 'temp',     title: t.f1_t, desc: t.f1_d },
     { icon: 'modes',    title: t.f2_t, desc: t.f2_d },
-    { icon: 'curve',    title: t.f3_t, desc: t.f3_d, pro: true },
+    { icon: 'curve',    title: t.f3_t, desc: t.f3_d },
     { icon: 'native',   title: t.f4_t, desc: t.f4_d },
     { icon: 'privacy',  title: t.f5_t, desc: t.f5_d },
     { icon: 'silicon',  title: t.f6_t, desc: t.f6_d },
@@ -441,18 +386,7 @@ function FeatureCell({ icon, title, desc, pro, t }) {
       }}>
         <FeatureIcon kind={icon} />
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <h3 style={{ fontSize: 16, fontWeight: 600, color: '#fff', margin: 0, letterSpacing: -0.2 }}>{title}</h3>
-        {pro && (
-          <span style={{
-            fontSize: 9, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase',
-            padding: '2px 6px', borderRadius: 4,
-            background: 'rgba(59,130,246,0.15)',
-            color: '#60a5fa',
-            boxShadow: 'inset 0 0 0 0.5px rgba(59,130,246,0.4)',
-          }}>{t.pro_badge}</span>
-        )}
-      </div>
+      <h3 style={{ fontSize: 16, fontWeight: 600, color: '#fff', margin: 0, letterSpacing: -0.2 }}>{title}</h3>
       <p style={{ fontSize: 13, lineHeight: 1.55, color: 'rgba(255,255,255,0.55)', margin: 0, textWrap: 'pretty' }}>{desc}</p>
     </div>
   );
@@ -469,92 +403,6 @@ function FeatureIcon({ kind }) {
     case 'silicon': return <svg {...props}><rect x="6" y="6" width="12" height="12" rx="1.5"/><path d="M3 9v6M3 12h3M21 9v6M18 12h3M9 3v3M12 3h0v3M15 3v3M9 18v3M12 21v0M15 18v3"/></svg>;
     default: return null;
   }
-}
-
-// ─── pricing ───────────────────────────────────────
-function Pricing({ t }) {
-  return (
-    <section id="pricing" style={{ padding: '100px 28px', borderTop: '0.5px solid rgba(255,255,255,0.05)', position: 'relative', overflow: 'hidden' }}>
-      <div style={{
-        position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-        width: 800, height: 400, pointerEvents: 'none',
-        background: 'radial-gradient(closest-side, rgba(59,130,246,0.18) 0%, transparent 70%)',
-        filter: 'blur(40px)',
-      }} />
-      <div style={{ position: 'relative', maxWidth: 880, margin: '0 auto' }}>
-        <div style={{ textAlign: 'center', marginBottom: 56 }}>
-          <h2 style={sectionTitle}>{t.pricing_title}</h2>
-          <p style={sectionSub}>{t.pricing_sub}</p>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16 }}>
-          <PricingCard
-            badge={t.free_badge} title={t.free_t}
-            price={t.free_p} priceSub={t.free_p_sub}
-            items={[t.free_1, t.free_2, t.free_3, t.free_4]}
-            ctaLabel={t.free_cta} ctaHref={DOWNLOAD_URL} />
-          <PricingCard featured
-            badge={t.pro_badge} title={t.pro_t}
-            price={t.pro_p} priceSub={t.pro_p_sub}
-            items={[t.pro_1, t.pro_2, t.pro_3, t.pro_4]}
-            ctaLabel={t.pro_cta} ctaHref={PURCHASE_URL} />
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function PricingCard({ featured, badge, title, price, priceSub, items, ctaLabel, ctaHref }) {
-  return (
-    <div style={{
-      position: 'relative',
-      padding: 32,
-      borderRadius: 18,
-      background: featured
-        ? 'linear-gradient(180deg, rgba(59,130,246,0.10) 0%, rgba(10,11,14,1) 60%)'
-        : '#0a0b0e',
-      boxShadow: featured
-        ? 'inset 0 0 0 0.5px rgba(59,130,246,0.4), 0 12px 40px rgba(59,130,246,0.18)'
-        : 'inset 0 0 0 0.5px rgba(255,255,255,0.06)',
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-        <span style={{
-          fontSize: 11, fontWeight: 600, letterSpacing: 1.4, textTransform: 'uppercase',
-          color: featured ? '#60a5fa' : 'rgba(255,255,255,0.5)',
-          padding: '4px 10px', borderRadius: 5,
-          background: featured ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.05)',
-          boxShadow: featured ? 'inset 0 0 0 0.5px rgba(59,130,246,0.3)' : 'inset 0 0 0 0.5px rgba(255,255,255,0.08)',
-        }}>{badge}</span>
-      </div>
-      <h3 style={{ fontSize: 20, fontWeight: 600, color: '#fff', margin: '0 0 14px', letterSpacing: -0.4 }}>{title}</h3>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 24 }}>
-        <span style={{ fontSize: 48, fontWeight: 600, color: '#fff', letterSpacing: -2, lineHeight: 1 }}>{price}</span>
-        <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>{priceSub}</span>
-      </div>
-      <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 28px', display: 'flex', flexDirection: 'column', gap: 11 }}>
-        {items.map((it, i) => (
-          <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 13.5, color: 'rgba(255,255,255,0.75)' }}>
-            <svg width="14" height="14" viewBox="0 0 14 14" style={{ flexShrink: 0, marginTop: 3, color: featured ? '#60a5fa' : 'rgba(255,255,255,0.5)' }}>
-              <path d="M2.5 7 L 5.5 10 L 11.5 4" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            <span>{it}</span>
-          </li>
-        ))}
-      </ul>
-      <a href={ctaHref} style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: '12px 22px', borderRadius: 10,
-        background: featured
-          ? 'linear-gradient(180deg, #fff 0%, #d4d4d8 100%)'
-          : 'rgba(255,255,255,0.06)',
-        color: featured ? '#0a0a0a' : '#fff',
-        boxShadow: featured
-          ? 'inset 0 0.5px 0 rgba(255,255,255,0.6), 0 8px 24px rgba(255,255,255,0.1)'
-          : 'inset 0 0 0 0.5px rgba(255,255,255,0.14), inset 0 1px 0 rgba(255,255,255,0.18)',
-        textDecoration: 'none', fontSize: 13.5, fontWeight: 600, letterSpacing: -0.1,
-      }}>{ctaLabel}</a>
-    </div>
-  );
 }
 
 const sectionTitle = {
