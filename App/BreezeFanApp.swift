@@ -52,7 +52,11 @@ struct BreezeFanApp: App {
             .environment(appState)
             .frame(width: 360, height: 640)
         }
-        .windowStyle(.hiddenTitleBar)
+        // Default `.titleBar` window style — let macOS draw the titlebar with its
+        // native traffic lights in the correct OS position. The user explicitly
+        // rejected the custom Liquid Glass titlebar attempts ("ainda ficaram
+        // bugadas fora do lgar… só deixe minimalista preto"). Native is simpler
+        // and visually predictable on every macOS version.
         .windowResizability(.contentSize)
         .commands {
             CommandGroup(replacing: .appInfo) {

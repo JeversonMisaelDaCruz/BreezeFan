@@ -20,9 +20,19 @@ public enum FCTheme {
     public static let bgGraphiteTop    = Color(hex: "#1a1c20")
     public static let bgGraphiteBottom = Color(hex: "#0f1013")
 
+    /// Elevated card surface on top of `bgGraphiteBottom`. Used by
+    /// `FCGlassSurface` after the minimalist-dark pivot.
+    public static let cardSurface = Color(hex: "#16181c")
+
     public static let trafficRed    = Color(hex: "#ff5f57")
     public static let trafficYellow = Color(hex: "#febc2e")
     public static let trafficGreen  = Color(hex: "#28c840")
+
+    // Specular highlight ("glow") for each traffic light's radial gradient.
+    // Mirrors JSX `~/Downloads/FanControl/app/window-shell.jsx:18-20`.
+    public static let trafficRedGlow    = Color(hex: "#ff8c83")
+    public static let trafficYellowGlow = Color(hex: "#ffd56a")
+    public static let trafficGreenGlow  = Color(hex: "#5cdf68")
 
     public static let divider     = Color.white.opacity(0.06)
     public static let textPrimary = Color.white.opacity(0.92)

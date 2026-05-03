@@ -1,54 +1,123 @@
 import SwiftUI
+import AppKit
 
-/// One fan listed in the Fans section. Mirrors `FCFanRow` from `atoms.jsx`.
+/// One fan row inside the Fans card. Mirrors JSX `GlassFanRow`
+/// (`~/Downloads/FanControl/app/main-mvp.jsx:100-145`):
+///
+///   ┌─────┐  Left Fan ........... 4,280 RPM
+///   │ ⚙ │  ━━━━━━━━━━━━━━━━━━━━━━━░░  66%
+///   └─────┘
+///
+///   - 30×30 round glass disc with the spinning fan glyph (14pt).
+///   - Centre column: top row [label / RPM tabular], then 5pt linear glass
+///     progress bar (accent gradient + glow).
+///   - Right column: 38pt fixed width, duty% in tabular nums @0.65 opacity.
+///
+/// Note: this row does **not** use `FCDial` — the radial primitive is reserved
+/// for `main-pulse.jsx` / `main-spectrum.jsx` future ports.
+/// See change `fix-liquid-glass-fidelity` for context.
 struct FanRow: View {
     let label: String
     let rpm: Int?
     let duty: Double?
+    let maxRPM: Int
 
-    /// Spin animation speed in seconds per revolution. duty=0 -> stop; duty=1 -> 0.5s/rev.
+    @Environment(AppState.self) private var appState
+
+    private var pct: Double {
+        guard let rpm, maxRPM > 0 else { return 0 }
+        return min(1.0, Double(rpm) / Double(maxRPM))
+    }
+
+    /// JSX: `Math.max(0.5, 3 - duty * 2.5)` seconds per rotation.
     private var spinDuration: Double? {
         guard let d = duty, d > 0 else { return nil }
-        return max(0.4, 3.0 - d * 2.5)
+        return max(0.5, 3.0 - d * 2.5)
     }
 
     var body: some View {
-        HStack(spacing: 12) {
-            FanGlyph(spinDuration: spinDuration)
-                .frame(width: 22, height: 22)
+        HStack(alignment: .center, spacing: 11) {
+            glassDisc
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(label)
-                    .font(FCFont.body)
-                    .foregroundStyle(FCTheme.textPrimary)
-                RPMBar(duty: duty)
-                    .frame(height: 3)
-                    .frame(maxWidth: 160)
+            VStack(alignment: .leading, spacing: 5) {
+                // Top row: label / RPM
+                HStack(alignment: .firstTextBaseline, spacing: 0) {
+                    Text(label)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(Color.white.opacity(0.95))
+                    Spacer(minLength: 0)
+                    HStack(alignment: .firstTextBaseline, spacing: 3) {
+                        Text(rpmDisplay)
+                            .font(.system(size: 12, weight: .medium))
+                            .fcTabularNums()
+                            .foregroundStyle(Color.white)
+                            .contentTransition(.numericText())
+                            .animation(.easeOut(duration: 0.1), value: rpm ?? 0)
+                        Text("RPM")
+                            .font(.system(size: 9))
+                            .foregroundStyle(Color.white.opacity(0.55))
+                    }
+                }
+
+                progressTrack
             }
 
-            Spacer()
+            Text(dutyDisplay)
+                .font(.system(size: 11))
+                .fcTabularNums()
+                .foregroundStyle(Color.white.opacity(0.65))
+                .frame(width: 38, alignment: .trailing)
+        }
+    }
 
-            VStack(alignment: .trailing, spacing: 2) {
-                Text(rpmDisplay)
-                    .font(FCFont.mono)
-                    .fcTabularNums()
-                    .foregroundStyle(FCTheme.textPrimary)
-                Text(dutyDisplay)
-                    .font(FCFont.mono)
-                    .fcTabularNums()
-                    .foregroundStyle(FCTheme.textMuted)
+    // MARK: - 30×30 glass disc with spinning fan glyph
+
+    private var glassDisc: some View {
+        ZStack {
+            Circle()
+                .fill(Color.white.opacity(0.04))
+                .overlay(
+                    Circle().strokeBorder(Color.white.opacity(0.10), lineWidth: 0.5)
+                )
+
+            FanGlyph(spinDuration: spinDuration)
+                .frame(width: 14, height: 14)
+        }
+        .frame(width: 28, height: 28)
+    }
+
+    // MARK: - 5pt linear glass progress bar
+
+    private var progressTrack: some View {
+        GeometryReader { geo in
+            let accent = appState.accentColor
+            let fillW = max(0, min(geo.size.width, geo.size.width * pct))
+
+            ZStack(alignment: .leading) {
+                // Track: dark recess + hairline
+                RoundedRectangle(cornerRadius: 99, style: .continuous)
+                    .fill(Color.white.opacity(0.06))
+
+                // Fill: solid accent
+                if fillW > 0 {
+                    RoundedRectangle(cornerRadius: 99, style: .continuous)
+                        .fill(accent)
+                        .frame(width: fillW)
+                        .animation(.easeInOut(duration: 0.6), value: fillW)
+                }
             }
         }
-        .padding(.vertical, 4)
+        .frame(height: 4)
     }
+
+    // MARK: - Formatting
 
     private var rpmDisplay: String {
         guard let rpm else { return "—" }
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.groupingSeparator = ","
-        let value = formatter.string(from: NSNumber(value: rpm)) ?? "\(rpm)"
-        return "\(value) RPM"
+        let f = NumberFormatter()
+        f.numberStyle = .decimal
+        f.groupingSeparator = ","
+        return f.string(from: NSNumber(value: rpm)) ?? "\(rpm)"
     }
 
     private var dutyDisplay: String {
@@ -57,31 +126,10 @@ struct FanRow: View {
     }
 }
 
-/// Mini horizontal bar showing the duty as a fill percentage.
-struct RPMBar: View {
-    let duty: Double?
-    @Environment(AppState.self) private var appState
-
-    var body: some View {
-        GeometryReader { geo in
-            ZStack(alignment: .leading) {
-                RoundedRectangle(cornerRadius: 1.5)
-                    .fill(Color.white.opacity(0.05))
-                if let d = duty {
-                    RoundedRectangle(cornerRadius: 1.5)
-                        .fill(appState.accentColor)
-                        .frame(width: geo.size.width * CGFloat(min(max(d, 0), 1)))
-                }
-            }
-        }
-    }
-}
-
-/// Spinning fan icon. Uses `TimelineView(.animation)` driven by absolute time so
-/// duty changes adjust the rotation speed without cancelling the running animation.
+/// Spinning fan icon. Uses `TimelineView(.animation)` so duty changes adjust speed
+/// without cancelling the running animation.
 struct FanGlyph: View {
     let spinDuration: Double?
-    private static let referenceDate = Date(timeIntervalSinceReferenceDate: 0)
 
     var body: some View {
         TimelineView(.animation) { context in
@@ -89,13 +137,11 @@ struct FanGlyph: View {
             Image(systemName: "fan.fill")
                 .resizable()
                 .scaledToFit()
-                .foregroundStyle(FCTheme.textMuted)
+                .foregroundStyle(Color.white)
                 .rotationEffect(.degrees(angle))
         }
     }
 
-    /// Maps an absolute timestamp + spin duration to a rotation angle.
-    /// When `spinDuration` is nil or the duty is zero, the icon stays at 0°.
     private func computeAngle(at date: Date) -> Double {
         guard let dur = spinDuration, dur > 0 else { return 0 }
         let elapsed = date.timeIntervalSinceReferenceDate

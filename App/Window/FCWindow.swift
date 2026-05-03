@@ -1,42 +1,32 @@
 import SwiftUI
+import AppKit
 
-/// Root window container. Background graphite + accent glow.
-/// Traffic lights are the macOS native ones (functional close/min/zoom) — we don't draw decorative ones.
+/// Root window container — minimalist dark.
+///
+/// History: previous iterations attempted to port the JSX Liquid Glass mockup
+/// (`~/Downloads/FanControl/app/window-shell.jsx`) with a colorful wallpaper
+/// + multi-layer glass + custom traffic lights. The result kept being visually
+/// off and the custom dots ended up out-of-place. User feedback was final:
+/// "ainda nao parece nada com liquid glass, se nao foi conseguir implementar
+///  so deixe minimalista preto".
+///
+/// Current setup:
+/// - Native macOS titlebar (default `.titleBar` window style) — system draws
+///   the traffic lights in their correct OS position.
+/// - Solid dark background `FCTheme.bgGraphiteBottom` — graphite-near-black.
+/// - Body content sits directly on the dark bg; cards are subtle elevated
+///   surfaces (see `FCGlassSurface`).
 struct FCWindow<Content: View>: View {
     let content: Content
-    @Environment(AppState.self) private var appState
 
     init(@ViewBuilder content: () -> Content) {
         self.content = content()
     }
 
     var body: some View {
-        ZStack(alignment: .topLeading) {
-            // Layer 1: graphite linear gradient
-            LinearGradient(
-                colors: [FCTheme.bgGraphiteTop, FCTheme.bgGraphiteBottom],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-
-            // Layer 2: accent glow radial gradient at top
-            RadialGradient(
-                gradient: Gradient(colors: [
-                    appState.accentColor.opacity(0.18),
-                    Color.clear
-                ]),
-                center: UnitPoint(x: 0.5, y: -0.10),
-                startRadius: 0,
-                endRadius: 280
-            )
-            .allowsHitTesting(false)
-
-            // Layer 3: content (top padding leaves room for native traffic lights)
-            content
-                .padding(.top, 28)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        }
-        .frame(width: 360, height: 640)
+        content
+            .frame(width: 360, height: 640)
+            .background(FCTheme.bgGraphiteBottom)
     }
 }
 

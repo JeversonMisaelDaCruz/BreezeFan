@@ -17,6 +17,7 @@ final class StatusItemController: NSObject {
     private var lastTooltipUpdate: Date = .distantPast
 
     private var observerTask: Task<Void, Never>?
+    private var appearanceObservation: NSKeyValueObservation?
 
     private override init() {
         self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -28,15 +29,19 @@ final class StatusItemController: NSObject {
         configurePopover()
         configureRightClickMenu()
         startObserving()
+        observeAppearance()
+    }
+
+    deinit {
+        appearanceObservation?.invalidate()
     }
 
     // MARK: - Setup
 
     private func configureStatusItem() {
         guard let button = statusItem.button else { return }
-        let iconName = StatusIcon.iconName()
-        button.image = NSImage(systemSymbolName: iconName, accessibilityDescription: "BreezeFan")
-        button.image?.isTemplate = true
+        // Initial image — palette color (no template).
+        button.image = StatusIcon.makeImage(mode: .auto, smcConflict: false)
         button.toolTip = "BreezeFan"
 
         // Receive both left and right clicks; differentiate in handler.
@@ -179,12 +184,37 @@ final class StatusItemController: NSObject {
         }
     }
 
-    /// Refreshes tooltip + tint. Tooltip throttled to every 2s (so it doesn't change while user is reading it).
+    /// Invalidate the cached image when the system appearance changes
+    /// (light → dark or vice-versa). Template images update automatically
+    /// via macOS, but we drop the cache key so the next `refreshIcon()`
+    /// rebuilds without flash.
+    private func observeAppearance() {
+        appearanceObservation = NSApp.observe(\.effectiveAppearance, options: [.new]) { [weak self] _, _ in
+            Task { @MainActor [weak self] in
+                self?.cachedImageState = nil
+                self?.refreshIcon()
+            }
+        }
+    }
+
+    /// Refreshes the menu bar icon (palette color baked into the image) and tooltip.
+    /// Tooltip throttled to every 2s so it doesn't change while user is reading it.
+    /// The image is rebuilt only when state changes (cached comparison).
+    private var cachedImageState: (mode: ControlMode.Kind, conflict: Bool)?
+
     func refreshIcon() {
         let snap = AppState.shared.snapshot
         let mode = AppState.shared.modeKind
         let conflict = snap.smcConflict
-        statusItem.button?.contentTintColor = StatusIcon.tint(mode: mode, smcConflict: conflict)
+
+        // Rebuild image only when state actually changed (avoid pointless work every 1s).
+        let newState = (mode: mode, conflict: conflict)
+        if cachedImageState == nil ||
+           cachedImageState!.mode != newState.mode ||
+           cachedImageState!.conflict != newState.conflict {
+            statusItem.button?.image = StatusIcon.makeImage(mode: mode, smcConflict: conflict)
+            cachedImageState = newState
+        }
 
         let now = Date()
         if now.timeIntervalSince(lastTooltipUpdate) >= 2.0 {

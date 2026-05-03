@@ -7,14 +7,15 @@ struct PresetGrid: View {
     @State private var inFlight: Preset?
     @State private var lastError: String?
 
+    // JSX `main-mvp.jsx:58` — `gridTemplateColumns: '1fr 1fr', gap: 6`.
     private let columns = [
-        GridItem(.flexible(), spacing: FCSpacing.sm),
-        GridItem(.flexible(), spacing: FCSpacing.sm),
+        GridItem(.flexible(), spacing: 6),
+        GridItem(.flexible(), spacing: 6),
     ]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            LazyVGrid(columns: columns, spacing: FCSpacing.sm) {
+            LazyVGrid(columns: columns, spacing: 6) {
                 ForEach(Array(Preset.allCases.enumerated()), id: \.element) { index, preset in
                     PresetButton(
                         preset: preset,

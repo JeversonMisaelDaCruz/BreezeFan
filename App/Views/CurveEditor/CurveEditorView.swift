@@ -14,27 +14,28 @@ struct CurveEditorView: View {
 
     var body: some View {
         ZStack {
-            // Backdrop
+            // Backdrop dim — wallpaper still visible behind it through opacity.
             Color.black.opacity(0.55)
                 .ignoresSafeArea()
                 .onTapGesture { /* swallow */ }
 
-            VStack(spacing: 0) {
-                header
-                FCDivider()
-                graphSection
-                FCDivider()
-                stepsSection
-                Spacer()
-                if let err = validationError {
-                    Text(errorMessage(err))
-                        .font(.system(size: 11))
-                        .foregroundStyle(FCTheme.danger)
-                        .padding(.bottom, 8)
+            FCGlassSurface(radius: FCRadius.sheet, intensity: 1.0, sheen: true) {
+                VStack(spacing: 0) {
+                    header
+                    FCDivider()
+                    graphSection
+                    FCDivider()
+                    stepsSection
+                    Spacer()
+                    if let err = validationError {
+                        Text(errorMessage(err))
+                            .font(.system(size: 11))
+                            .foregroundStyle(FCTheme.danger)
+                            .padding(.bottom, 8)
+                    }
                 }
             }
-            .background(.ultraThinMaterial)
-            .background(Color.black.opacity(0.85))
+            .padding(FCSpacing.sm)
         }
         .onAppear {
             draftSteps = appState.activeCurve.steps.isEmpty
