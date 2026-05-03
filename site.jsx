@@ -2,7 +2,10 @@
 // Inspired by mac-stats.com: minimal, dark, big hero, single-page.
 // i18n PT/EN auto-detected from browser.
 
-const STRIPE_URL = 'https://buy.stripe.com/your-link-here';
+// Purchase link (Stripe, Lemon Squeezy, Gumroad — whatever the active gateway is).
+const PURCHASE_URL = 'https://buy.stripe.com/your-link-here';
+// Latest GitHub Release page (user picks DMG asset to download).
+const DOWNLOAD_URL = 'https://github.com/JeversonMisaelDaCruz/Macfancontrol/releases/latest';
 const VERSION = 'v1.0.0';
 
 const I18N = {
@@ -70,8 +73,8 @@ const I18N = {
     nav_features: 'Funcionalidades',
     nav_pricing: 'Preço',
     nav_download: 'Baixar',
-    hero_eyebrow: 'Controle de ventoinhas para macOS',
-    hero_title: 'Controle as ventoinhas do seu Mac.',
+    hero_eyebrow: 'Controle de Fans para macOS',
+    hero_title: 'Controle os Fans do seu Mac.',
     hero_sub: 'Um app discreto na barra de menu que monitora a temperatura e ajusta a velocidade das fans do seu jeito. Grátis pra sempre — desbloqueie curvas personalizadas por $3, pagamento único.',
     hero_cta_primary: 'Baixar para Mac',
     hero_cta_secondary: 'Desbloquear Pro — $3',
@@ -87,7 +90,7 @@ const I18N = {
     feat_sub: 'Feito para o Mac. Pensado pra não atrapalhar.',
 
     f1_t: 'Temperatura ao vivo',
-    f1_d: 'Leituras de CPU e ventoinhas em tempo real, na sua barra de menu.',
+    f1_d: 'Leituras de CPU e Fans em tempo real, na sua barra de menu.',
     f2_t: 'Quatro modos prontos',
     f2_d: 'Silent, Balanced, Performance e Max — alterne com um clique.',
     f3_t: 'Curvas personalizadas',
@@ -266,11 +269,11 @@ function Hero({ t }) {
         }}>{t.hero_sub}</p>
 
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 16 }}>
-          <a href="#" style={primaryBtn}>
+          <a href={DOWNLOAD_URL} style={primaryBtn}>
             <svg width="14" height="17" viewBox="0 0 14 17" fill="currentColor"><path d="M11.6 9c0-2 1.6-2.9 1.7-3-1-1.4-2.4-1.6-3-1.6-1.2-.1-2.5.7-3.1.7-.6 0-1.6-.7-2.7-.7-1.4 0-2.6.8-3.4 2C-.5 8.8.6 12.7 2 14.8c.7 1 1.5 2.2 2.6 2.2 1 0 1.5-.7 2.8-.7 1.3 0 1.7.7 2.8.7 1.2 0 1.9-1 2.7-2 .8-1.1 1.1-2.2 1.2-2.3-.1 0-2.4-1-2.5-3.7zM9.7 3c.5-.7.9-1.6.8-2.6-.8 0-1.7.5-2.3 1.2-.5.6-.9 1.6-.8 2.5.9.1 1.8-.5 2.3-1.1z"/></svg>
             {t.hero_cta_primary}
           </a>
-          <a href={STRIPE_URL} style={secondaryBtn}>
+          <a href={PURCHASE_URL} style={secondaryBtn}>
             {t.hero_cta_secondary}
           </a>
         </div>
@@ -489,12 +492,12 @@ function Pricing({ t }) {
             badge={t.free_badge} title={t.free_t}
             price={t.free_p} priceSub={t.free_p_sub}
             items={[t.free_1, t.free_2, t.free_3, t.free_4]}
-            ctaLabel={t.free_cta} ctaHref="#" />
+            ctaLabel={t.free_cta} ctaHref={DOWNLOAD_URL} />
           <PricingCard featured
             badge={t.pro_badge} title={t.pro_t}
             price={t.pro_p} priceSub={t.pro_p_sub}
             items={[t.pro_1, t.pro_2, t.pro_3, t.pro_4]}
-            ctaLabel={t.pro_cta} ctaHref={STRIPE_URL} />
+            ctaLabel={t.pro_cta} ctaHref={PURCHASE_URL} />
         </div>
       </div>
     </section>
