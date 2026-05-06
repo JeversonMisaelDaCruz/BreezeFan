@@ -9,5 +9,13 @@
     <!-- Sparkle: precisa baixar updates do GitHub Pages / GitHub Releases -->
     <key>com.apple.security.network.client</key>
     <true/>
+    <!-- Required for ad-hoc bundling of SPM frameworks like Sparkle.
+         Without this, Hardened Runtime Library Validation rejects the
+         Sparkle.framework load when launchd is the parent process (Login Item,
+         launchctl) because ad-hoc CDHashes are treated as distinct trust
+         origins even when TeamIdentifier=not set on both host and framework.
+         See openspec change fix-login-item-library-validation-crash. -->
+    <key>com.apple.security.cs.disable-library-validation</key>
+    <true/>
 </dict>
 </plist>

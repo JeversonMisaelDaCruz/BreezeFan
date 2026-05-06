@@ -119,6 +119,59 @@ if [[ ! -f "$BUILT_APP/Contents/Library/LaunchDaemons/com.breezefan.helper.plist
   exit 1
 fi
 
+# ─── Re-sign with explicit entitlements + verify ──────────────────────────────
+# This step guarantees:
+#   1. The new disable-library-validation entitlement is sealed into the bundle
+#      even when Xcode's incremental build cached an older signature.
+#   2. All embedded frameworks (Sparkle, etc.) carry consistent --options=runtime
+#      flags after the deep walk.
+#   3. The helper gets its own entitlements (--deep alone won't apply per-binary
+#      entitlements to nested executables).
+#   4. codesign --verify --strict catches signature inconsistencies at build time
+#      so we never ship a broken DMG again.
+# See openspec change fix-login-item-library-validation-crash / design.md D3-D4.
+
+# Signing order matters: innermost nested code must be signed BEFORE the
+# outer bundle that seals them. We do three passes:
+#   1. --deep on Sparkle.framework only → signs Sparkle + its XPCs/binaries
+#      in the correct inside-out order, without touching the outer bundle.
+#   2. Helper with its specific entitlements (no --deep needed, standalone binary).
+#   3. Outer BreezeFan.app WITHOUT --deep (all nested code already signed).
+#
+# If we ran --deep on the full app THEN re-signed the helper, the outer seal
+# would be broken. This order avoids that. See design.md D3.
+
+echo "▸ Re-signing Sparkle.framework and its nested XPC services (inside-out)…"
+codesign --force --deep \
+  --sign "-" \
+  --options=runtime \
+  "$BUILT_APP/Contents/Frameworks/Sparkle.framework" \
+  || { echo "✗ codesign Sparkle.framework failed" >&2; exit 1; }
+
+echo "▸ Re-signing helper with its own entitlements…"
+codesign --force \
+  --sign "-" \
+  --options=runtime \
+  --entitlements "$PROJECT_DIR/Helper/BreezeFanHelper.entitlements" \
+  "$BUILT_APP/Contents/MacOS/Helpers/BreezeFanHelper" \
+  || { echo "✗ codesign helper failed" >&2; exit 1; }
+
+echo "▸ Re-signing outer app bundle (all nested code already signed — no --deep)…"
+codesign --force \
+  --sign "-" \
+  --options=runtime \
+  --entitlements "$PROJECT_DIR/App/BreezeFan.entitlements" \
+  "$BUILT_APP" \
+  || { echo "✗ codesign main bundle failed" >&2; exit 1; }
+
+echo "▸ Verifying signature (strict)…"
+codesign --verify --deep --strict --verbose=2 "$BUILT_APP" \
+  || { echo "✗ codesign verify failed" >&2; exit 1; }
+
+echo "▸ Gatekeeper assessment (ad-hoc — expected to be 'rejected', informational only):"
+spctl --assess --verbose=2 "$BUILT_APP" 2>&1 | head -3 || true
+echo
+
 # ─── Stage for DMG ────────────────────────────────────────────────────────────
 
 echo "▸ Staging at $STAGING_DIR…"
