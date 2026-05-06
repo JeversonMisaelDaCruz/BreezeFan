@@ -35,6 +35,16 @@ Replacement for [crystalidea/macs-fan-control](https://github.com/crystalidea/ma
 
 Output: `dist/BreezeFan-<version>.dmg`. See language-specific docs above for full instructions and Gatekeeper notes.
 
+## Troubleshooting
+
+### BreezeFan crashes at login (Login Item crash — 0.4.0 only)
+
+**Symptom:** BreezeFan added as a Login Item causes a crash at boot with `Library not loaded: @rpath/Sparkle.framework` in the crash report.
+
+**Cause:** BreezeFan 0.4.0 was missing a code-signing entitlement (`com.apple.security.cs.disable-library-validation`) required for Hardened Runtime to allow bundled SPM frameworks (Sparkle) when launched by `launchd` (i.e. as a Login Item).
+
+**Fix:** Install [BreezeFan 0.4.1](https://github.com/JeversonMisaelDaCruz/BreezeFan/releases/tag/0.4.1) — the entitlement is included and the build pipeline now runs `codesign --verify --strict` to prevent this class of regression.
+
 ## License
 
 Personal-use project. SMC key table derived from [crystalidea/macs-fan-control](https://github.com/crystalidea/macs-fan-control) (LGPL).
