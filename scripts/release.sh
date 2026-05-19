@@ -247,7 +247,7 @@ fi
 # ─── 7. GitHub Release ───────────────────────────────────────────────────────
 
 if ! $DRY_RUN; then
-  echo "▸ Criando GitHub Release $VERSION…"
+  echo "▸ Criando GitHub Release ${VERSION}…"
   gh release create "$VERSION" \
     --title "BreezeFan $VERSION" \
     --notes "$NOTES_HTML" \

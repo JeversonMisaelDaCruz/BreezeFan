@@ -216,7 +216,7 @@ echo
 
 # ─── Stage for DMG ────────────────────────────────────────────────────────────
 
-echo "▸ Staging at $STAGING_DIR…"
+echo "▸ Staging at ${STAGING_DIR}…"
 cp -R "$BUILT_APP" "$STAGING_DIR/"
 ln -s /Applications "$STAGING_DIR/Applications"
 
