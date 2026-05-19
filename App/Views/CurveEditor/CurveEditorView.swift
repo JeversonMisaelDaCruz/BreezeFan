@@ -8,6 +8,10 @@ struct CurveEditorView: View {
     @State private var validationError: CurveError?
     @State private var saving: Bool = false
 
+    /// `draftSteps` preserves the user's input order — sorting it in-place would
+    /// shuffle the on-screen row that has keyboard focus while the user is
+    /// editing a value. We only sort on demand for the graph + save paths;
+    /// validation surfaces `.unordered` so the user fixes ordering explicitly.
     private var draftCurve: Curve {
         Curve(steps: draftSteps.sorted { $0.temp < $1.temp })
     }
@@ -96,7 +100,7 @@ struct CurveEditorView: View {
     private var stepsSection: some View {
         FCSection(title: "Steps") {
             VStack(spacing: 4) {
-                ForEach(Array(draftSteps.indices), id: \.self) { idx in
+                ForEach(draftSteps.indices, id: \.self) { idx in
                     StepRow(
                         step: $draftSteps[idx],
                         canRemove: draftSteps.count > 2,
