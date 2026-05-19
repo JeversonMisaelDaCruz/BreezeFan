@@ -29,13 +29,47 @@ Replacement for [crystalidea/macs-fan-control](https://github.com/crystalidea/ma
 ## Building a .dmg installer
 
 ```bash
-./scripts/build-dmg.sh           # basic (hdiutil)
-./scripts/build-dmg.sh --pretty  # with create-dmg (brew install create-dmg)
+./scripts/build-dmg.sh                              # basic (hdiutil)
+./scripts/build-dmg.sh --pretty                     # branded (create-dmg)
+./scripts/build-dmg.sh --pretty --regenerate-assets # rebuild bg + volicon first
 ```
 
-Output: `dist/BreezeFan-<version>.dmg`. See language-specific docs above for full instructions and Gatekeeper notes.
+The `--pretty` build produces a dark-graphite DMG window with a custom
+volume icon — see the layout below. Assets live in `Resources/`:
+
+- `dmg-background.png` (1200×760 @2x) — rendered by
+  `scripts/generate-dmg-background.swift` (Core Graphics; no Sketch/Figma).
+  Embeds the current `CFBundleShortVersionString` as a watermark, so any
+  given DMG identifies itself.
+- `dmg-volume.icns` — derived from `AppIcon.icns` by
+  `scripts/build-dmg-volume-icon.sh`. Shows in the Finder sidebar when
+  the DMG mounts.
+
+Tooling required for `--pretty`:
+
+```bash
+brew install create-dmg xcodegen
+```
+
+`scripts/release.sh` always uses `--pretty --regenerate-assets`, so a
+published release never accidentally ships the bare hdiutil DMG.
+
+Output: `dist/BreezeFan-<version>.dmg` + SHA256 echoed to stdout.
 
 ## What's new
+
+### 0.7.0 — branded DMG installer
+
+- Dark-graphite drag-to-Applications window with custom volume icon.
+- `scripts/generate-dmg-background.swift` renders the background PNG
+  (1200×760 @2x) deterministically — version-string watermark stays in
+  sync with `CFBundleShortVersionString` on every regeneration.
+- `scripts/build-dmg-volume-icon.sh` rebuilds the volume `.icns` from
+  `AppIcon.icns` via `iconutil` round-trip.
+- `scripts/build-dmg.sh --pretty` now requires the assets and
+  pre-flights for size + presence before invoking `create-dmg`. Final
+  output includes SHA256 and Gatekeeper assessment for release notes.
+- `scripts/release.sh` defaults to the branded build.
 
 ### 0.6.0 — multi-MacBook profiles + crash hardening
 
