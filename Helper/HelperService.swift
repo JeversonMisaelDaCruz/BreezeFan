@@ -7,6 +7,11 @@ final class HelperService: NSObject, HelperProtocol, @unchecked Sendable {
 
     private let queue = DispatchQueue(label: "com.breezefan.helper.service", qos: .userInitiated)
 
+    /// Shared JSON coders — reuse instead of allocating per XPC reply.
+    /// Confined to `queue` so we never touch them from two threads at once.
+    private let encoder = JSONEncoder()
+    private let decoder = JSONDecoder()
+
     private var sensorPoller: SensorPolling?
     private var modeManager: ModeManaging?
     private var ceilingsProvider: CeilingsProviding?
@@ -58,7 +63,7 @@ final class HelperService: NSObject, HelperProtocol, @unchecked Sendable {
                 reply(false, HelperError.unsupportedModel(self.modelIdentifier))
                 return
             }
-            guard let mode = try? JSONDecoder().decode(ControlMode.self, from: modeData) else {
+            guard let mode = try? self.decoder.decode(ControlMode.self, from: modeData) else {
                 reply(false, HelperError.invalidPayload)
                 return
             }
@@ -81,7 +86,7 @@ final class HelperService: NSObject, HelperProtocol, @unchecked Sendable {
                 reply(false, HelperError.unsupportedModel(self.modelIdentifier))
                 return
             }
-            guard let curve = try? JSONDecoder().decode(Curve.self, from: curveData) else {
+            guard let curve = try? self.decoder.decode(Curve.self, from: curveData) else {
                 reply(false, HelperError.invalidPayload)
                 return
             }
@@ -137,7 +142,7 @@ final class HelperService: NSObject, HelperProtocol, @unchecked Sendable {
         queue.async {
             let ceilings = self.ceilingsProvider?.ceilings ?? FanCeilings.defaults
             do {
-                let data = try JSONEncoder().encode(ceilings)
+                let data = try self.encoder.encode(ceilings)
                 reply(data, nil)
             } catch {
                 reply(nil, error)
@@ -164,7 +169,7 @@ final class HelperService: NSObject, HelperProtocol, @unchecked Sendable {
 
     private func encodeAndReply(_ snapshot: SensorSnapshot, reply: (Data?, Error?) -> Void) {
         do {
-            let data = try JSONEncoder().encode(snapshot)
+            let data = try self.encoder.encode(snapshot)
             reply(data, nil)
         } catch {
             reply(nil, error)

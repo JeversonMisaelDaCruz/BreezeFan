@@ -28,6 +28,12 @@ final class HelperClient {
     private var connection: NSXPCConnection?
     private let timeoutSeconds: Double = 2.0
 
+    /// Shared JSON coders. Apple's JSONEncoder/JSONDecoder are documented as safe to
+    /// reuse and explicitly designed for it — creating fresh instances per XPC call
+    /// wastes CPU and allocations on every poll (1Hz here, but every call counts).
+    private static let encoder: JSONEncoder = JSONEncoder()
+    private static let decoder: JSONDecoder = JSONDecoder()
+
     private init() {}
 
     // MARK: - Connection management
@@ -105,7 +111,7 @@ final class HelperClient {
                             resumed = true; cont.resume(throwing: HelperClientError.decodingFailed); return
                         }
                         do {
-                            let snap = try JSONDecoder().decode(SensorSnapshot.self, from: data)
+                            let snap = try Self.decoder.decode(SensorSnapshot.self, from: data)
                             resumed = true; cont.resume(returning: snap)
                         } catch {
                             resumed = true; cont.resume(throwing: error)
@@ -117,7 +123,7 @@ final class HelperClient {
     }
 
     func setMode(_ mode: ControlMode) async throws {
-        let data = try JSONEncoder().encode(mode)
+        let data = try Self.encoder.encode(mode)
         try await withTimeout("setMode") {
             try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
                 Task { @MainActor in
@@ -136,7 +142,7 @@ final class HelperClient {
     }
 
     func setCurve(_ curve: Curve) async throws {
-        let data = try JSONEncoder().encode(curve)
+        let data = try Self.encoder.encode(curve)
         try await withTimeout("setCurve") {
             try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
                 Task { @MainActor in
@@ -187,7 +193,7 @@ final class HelperClient {
                             resumed = true; cont.resume(throwing: HelperClientError.decodingFailed); return
                         }
                         do {
-                            let c = try JSONDecoder().decode(FanCeilings.self, from: data)
+                            let c = try Self.decoder.decode(FanCeilings.self, from: data)
                             resumed = true; cont.resume(returning: c)
                         } catch {
                             resumed = true; cont.resume(throwing: error)
