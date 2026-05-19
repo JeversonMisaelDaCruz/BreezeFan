@@ -10,20 +10,11 @@ struct BreezeFanApp: App {
     @StateObject private var updaterController = UpdaterController()
 
     init() {
-        // Best-effort install attempt on launch.
-        let result = HelperClient.shared.installHelperIfNeeded()
-        let state = AppState.shared
-        switch result {
-        case .alreadyEnabled:
-            state.helperConnected = true
-            state.helperStatusMessage = "Helper running."
-        case .approved:
-            state.helperStatusMessage = "Installed. Waiting for daemon to spawn…"
-        case .requiresApproval:
-            state.helperStatusMessage = "Approve in System Settings → Login Items"
-        case .failed(let msg):
-            state.helperStatusMessage = "Install failed: \(msg)"
-        }
+        // Best-effort install attempt on launch. The result is intentionally
+        // discarded — the first XPC poll surfaces reachability through
+        // SensorViewModel.helperReachable + lastError, which the offline banner
+        // already observes.
+        _ = HelperClient.shared.installHelperIfNeeded()
 
         // Bring up the menu bar status item BEFORE the window so the icon is
         // visible immediately at launch.

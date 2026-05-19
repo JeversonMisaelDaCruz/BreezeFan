@@ -47,9 +47,9 @@ final class AppState {
     // Lemon Squeezy License Keys API (planned). Until that integration lands,
     // the curve editor is open to all installs.
 
-    /// Helper status snapshot.
-    var helperConnected: Bool = false
-    var helperStatusMessage: String = "Connecting…"
+    /// Set by SensorViewModel.pollOnce — tracks the most recent helper state
+    /// so the menu bar status icon (which doesn't have its own VM) can show
+    /// the SMC-conflict warning tint.
     var smcConflict: Bool = false
 
     /// Last sensor snapshot rendered in UI.
@@ -101,19 +101,15 @@ final class AppState {
     }
 
     /// Forces a fresh installation attempt. Used by the "Retry" banner button.
+    /// Feedback flows back through `SensorViewModel.lastError` on the next poll,
+    /// which the banner already observes — so no UI state is set here directly.
     func reinstallHelper() {
         let result = HelperClient.shared.installHelperIfNeeded()
-        switch result {
-        case .alreadyEnabled, .approved:
-            helperStatusMessage = "Helper installed."
-        case .requiresApproval:
-            helperStatusMessage = "Approve in System Settings → Login Items"
-            // Open System Settings to the right pane
+        if case .requiresApproval = result {
+            // Take the user to the right Login Items pane so they can approve.
             if let url = URL(string: "x-apple.systempreferences:com.apple.LoginItems-Settings.extension") {
                 NSWorkspace.shared.open(url)
             }
-        case .failed(let msg):
-            helperStatusMessage = "Install failed: \(msg)"
         }
     }
 

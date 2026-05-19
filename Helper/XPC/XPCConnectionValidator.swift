@@ -105,49 +105,25 @@ struct LiveSigningValidator: SigningValidator {
 // MARK: - audit_token extraction
 
 enum AuditTokenExtractor {
+    /// Selector cached at module init so repeated lookups don't re-intern the string.
+    private static let auditTokenSelector = NSSelectorFromString("auditToken")
+
     /// Pulls the `audit_token_t` from NSXPCConnection. Returns the 32-byte token as Data.
-    /// Uses the Objective-C runtime because audit_token_t is a C struct and can't be bridged via KVC.
+    /// Uses the Objective-C runtime because audit_token_t is a C struct and can't be
+    /// bridged via KVC.
+    ///
+    /// ARM64 returns struct values via x8 — no `_stret` dance needed; a single
+    /// `@convention(c)` function-pointer cast on the method IMP suffices.
     static func extract(from connection: NSXPCConnection) -> Data? {
-        // The selector is `auditToken` returning struct audit_token_t (32 bytes = 8 × UInt32).
-        // We use ObjC method_invoke through NSMethodSignature to handle struct return.
-        let selector = NSSelectorFromString("auditToken")
-        guard connection.responds(to: selector) else {
+        guard connection.responds(to: auditTokenSelector) else {
             return nil
         }
-
-        // Use NSInvocation via the Objective-C runtime to invoke a method that returns a struct.
-        let methodSignature = (connection as AnyObject).method(for: selector)
-        guard methodSignature != nil else { return nil }
-
-        // Invoke via NSInvocation. Building this dynamically in pure Swift is awkward,
-        // so we use a small helper class in Objective-C-equivalent form.
-        var token = audit_token_t()
-        let success = invokeAuditToken(connection: connection, selector: selector, into: &token)
-        guard success else { return nil }
-
-        return withUnsafeBytes(of: &token) { Data($0) }
-    }
-
-    private static func invokeAuditToken(
-        connection: NSXPCConnection,
-        selector: Selector,
-        into token: UnsafeMutablePointer<audit_token_t>
-    ) -> Bool {
-        // NSMethodSignature route: build invocation, invoke, copy struct return into pointer.
-        guard let signature = (type(of: connection) as AnyClass).instanceMethod(for: selector) else {
-            return false
+        guard let imp = (connection as AnyObject).method(for: auditTokenSelector) else {
+            return nil
         }
-        _ = signature
-
-        // NSInvocation is not directly accessible from Swift without bridging.
-        // Use the ObjC runtime function `method_invoke` via objc_msgSend_stret cast.
-        // But this only works on Intel; on ARM64 there's no _stret variant — the struct
-        // is returned via x8 register, so a regular function-pointer cast works.
         typealias AuditTokenFn = @convention(c) (AnyObject, Selector) -> audit_token_t
-        let imp = (connection as AnyObject).method(for: selector)
-        guard let imp else { return false }
         let fn = unsafeBitCast(imp, to: AuditTokenFn.self)
-        token.pointee = fn(connection, selector)
-        return true
+        var token = fn(connection, auditTokenSelector)
+        return withUnsafeBytes(of: &token) { Data($0) }
     }
 }
