@@ -15,9 +15,6 @@ public final class SnapshotBuilder {
     /// False when any reading was rejected — defaults are used in that case.
     public var ceilingsValid: Bool = false
 
-    /// True when the last write attempt failed with `kIOReturnExclusiveAccess`.
-    public var smcConflict: Bool = false
-
     /// Tick counter — used by diagnostic logging in the first 5 ticks after boot.
     public var tickCount: Int = 0
 
@@ -73,7 +70,8 @@ public final class SnapshotBuilder {
     public func build() -> SensorSnapshot {
         tickCount += 1
         let isDiagTick = tickCount <= 5
-        var conflict = smcConflict
+        // Per-tick conflict state — true if any read this tick returned .locked.
+        var conflict = false
         let leftRPM: Int? = {
             switch smc.read(.f0Ac) {
             case .success(let v):
