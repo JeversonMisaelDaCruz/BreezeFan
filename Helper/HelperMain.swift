@@ -37,7 +37,7 @@ enum HelperMain {
                 f1Mn: snapshotBuilder.f1Mn,
                 f1Mx: snapshotBuilder.f1Mx,
                 snapshotProvider: { pollAdapter.latestSnapshot() },
-                configProvider: { store.load() }
+                configProvider: { store.current }
             )
             let modeManager = ModeManager(
                 store: store,
