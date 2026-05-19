@@ -19,6 +19,14 @@ public final class ControlLoop: @unchecked Sendable {
     private var task: Task<Void, Never>?
     private var cancelled: Bool = false
 
+    /// Serializes any SMC write originating from this loop. Held by `tick()`
+    /// and `revertToAuto()`. Prevents the race where a `setMode(.auto)` calls
+    /// `stop()` + `revertToAuto()` while a tick is mid-execution — without the
+    /// lock the tick would write `F0Md=1` *after* the revert wrote `F0Md=0`,
+    /// leaving fans stuck in manual mode. The watchdog cannot recover this
+    /// because `isActive` is already false post-stop.
+    private let writeLock = NSLock()
+
     /// True when the loop has been started and is actively running.
     public var isActive: Bool { task != nil && !cancelled }
 
@@ -67,7 +75,16 @@ public final class ControlLoop: @unchecked Sendable {
     }
 
     /// Single iteration. Public so tests can drive it deterministically.
+    ///
+    /// The `cancelled` check is **inside** `writeLock` so that a concurrent
+    /// `revertToAuto()` (which also takes the lock) cannot be undone by an
+    /// in-flight tick. Sequence: setMode flips `cancelled`, then waits on the
+    /// lock, runs revert, releases. Pending tick acquires lock, sees
+    /// `cancelled=true`, exits without writing.
     public func tick() {
+        writeLock.lock()
+        defer { writeLock.unlock() }
+        if cancelled { return }
         lastTickTimestamp = Date()
         let cfg = configProvider()
         switch cfg.modeKind {
@@ -133,13 +150,16 @@ public final class ControlLoop: @unchecked Sendable {
         if case .failure(let e) = r4 {
             HelperLogger.smc.warn("write F1Tg=\(target1) failed: \(String(describing: e))")
         }
-        // Suppress per-tick success logs — too noisy. Errors only.
         _ = r1; _ = r3
-        HelperLogger.control.log("tick: write F0Tg=\(target0) F1Tg=\(target1)")
+        // Per-tick trace — emits only when debug logging is enabled; production no-op.
+        HelperLogger.control.trace("tick F0Tg=\(target0) F1Tg=\(target1)")
     }
 
-    /// Reverts both fans to system control.
+    /// Reverts both fans to system control. Guarded by `writeLock` so an
+    /// in-flight `tick()` can't clobber the Md=0 writes with Md=1.
     public func revertToAuto() {
+        writeLock.lock()
+        defer { writeLock.unlock() }
         _ = smcWriter.writeUInt8(.f0Md, value: 0)
         _ = smcWriter.writeUInt8(.f1Md, value: 0)
     }

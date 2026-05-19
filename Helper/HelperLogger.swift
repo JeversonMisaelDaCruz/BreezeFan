@@ -17,4 +17,10 @@ extension Logger {
     func log(_ msg: String) {
         self.info("\(msg, privacy: .public)")
     }
+    /// Debug-level log — not persisted in production by os_log, so the string is
+    /// only formatted when debug logging is enabled (Console / log show). Use for
+    /// hot-path per-tick traces.
+    func trace(_ msg: String) {
+        self.debug("\(msg, privacy: .public)")
+    }
 }
