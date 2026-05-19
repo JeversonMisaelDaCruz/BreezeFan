@@ -105,7 +105,7 @@ struct MainView: View {
 
                 HStack(alignment: .firstTextBaseline, spacing: 4) {
                     Text(appState.formatTemp(sensorVM.snapshot.cpuTemp))
-                        .font(.system(size: 64, weight: .thin))
+                        .font(FCFont.display)
                         .tracking(-3)
                         .foregroundStyle(Color.white)
                         .fcTabularNums()
@@ -143,11 +143,11 @@ struct MainView: View {
 
     private var statusDotColor: Color {
         guard sensorVM.helperReachable else { return Color.white.opacity(0.30) }
-        guard let t = sensorVM.snapshot.cpuTemp else { return Color(hex: "22c55e") }
+        guard let t = sensorVM.snapshot.cpuTemp else { return FCTheme.statusGreen }
         switch t {
-        case ..<80: return Color(hex: "22c55e") // green
-        case ..<95: return Color(hex: "f59e0b") // amber
-        default:    return FCTheme.danger       // red
+        case ..<80: return FCTheme.statusGreen
+        case ..<95: return FCTheme.statusAmber
+        default:    return FCTheme.danger
         }
     }
 
@@ -166,11 +166,7 @@ struct MainView: View {
     }
 
     private var activeFanCount: Int {
-        let snap = sensorVM.snapshot
-        var n = 0
-        if (snap.leftRPM ?? 0) > 0 { n += 1 }
-        if (snap.rightRPM ?? 0) > 0 { n += 1 }
-        return n
+        sensorVM.snapshot.activeFanCount
     }
 
     // MARK: - Card 2: Fans

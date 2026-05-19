@@ -13,10 +13,15 @@ struct PresetGrid: View {
         GridItem(.flexible(), spacing: 6),
     ]
 
+    /// Stable enumerated list — Preset.allCases never changes at runtime, so we
+    /// allocate this array once instead of in every body invocation.
+    private static let enumeratedPresets: [(Int, Preset)] =
+        Array(Preset.allCases.enumerated())
+
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             LazyVGrid(columns: columns, spacing: 6) {
-                ForEach(Array(Preset.allCases.enumerated()), id: \.element) { index, preset in
+                ForEach(Self.enumeratedPresets, id: \.1) { index, preset in
                     PresetButton(
                         preset: preset,
                         isActive: appState.activePreset == preset

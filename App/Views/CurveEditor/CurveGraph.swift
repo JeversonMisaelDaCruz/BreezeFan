@@ -2,6 +2,11 @@ import SwiftUI
 
 /// Canvas-rendered curve graph. Replicates `CurveGraph` from `curve-mvp.jsx`.
 /// 320×140 viewBox, gridlines, danger zone, area gradient, hoverable points.
+///
+/// Hot-path note: the Canvas closure re-runs on every state change in the editor
+/// sheet. Constant geometry (gridline tick lists, stroke styles, grid color) is
+/// lifted out of the closure so we don't allocate fresh `[Double]` / `StrokeStyle`
+/// objects per redraw.
 struct CurveGraph: View {
     let curve: Curve
     @Environment(AppState.self) private var appState
@@ -9,6 +14,14 @@ struct CurveGraph: View {
 
     private let viewBox = CGSize(width: 320, height: 140)
     private let pad = (l: 28.0, r: 8.0, t: 8.0, b: 22.0)
+
+    /// Gridline / axis-label tick positions. Static — never change.
+    private static let yTicks: [Double] = [0, 25, 50, 75, 100]
+    private static let xTicks: [Double] = [30, 50, 70, 90]
+    private static let gridColor = Color.white.opacity(0.05)
+    private static let gridStroke = StrokeStyle(lineWidth: 0.5, dash: [2, 3])
+    private static let axisLabelColor = Color.white.opacity(0.35)
+    private static let axisLabelFont = Font.system(size: 8, weight: .regular, design: .monospaced)
 
     var body: some View {
         GeometryReader { geo in
@@ -55,24 +68,21 @@ struct CurveGraph: View {
     // MARK: - Drawing
 
     private func drawGridlines(ctx: GraphicsContext) {
-        let gridColor = Color.white.opacity(0.05)
-        let style = StrokeStyle(lineWidth: 0.5, dash: [2, 3])
-
-        // Y gridlines: 0, 25, 50, 75, 100
-        for d in [0.0, 25, 50, 75, 100] {
+        // Y gridlines
+        for d in Self.yTicks {
             let y = yFor(d)
             var path = Path()
             path.move(to: CGPoint(x: pad.l, y: y))
             path.addLine(to: CGPoint(x: viewBox.width - pad.r, y: y))
-            ctx.stroke(path, with: .color(gridColor), style: style)
+            ctx.stroke(path, with: .color(Self.gridColor), style: Self.gridStroke)
         }
-        // X gridlines: 30, 50, 70, 90
-        for t in [30.0, 50, 70, 90] {
+        // X gridlines
+        for t in Self.xTicks {
             let x = xFor(t)
             var path = Path()
             path.move(to: CGPoint(x: x, y: pad.t))
             path.addLine(to: CGPoint(x: x, y: viewBox.height - pad.b))
-            ctx.stroke(path, with: .color(gridColor), style: style)
+            ctx.stroke(path, with: .color(Self.gridColor), style: Self.gridStroke)
         }
     }
 
@@ -83,7 +93,7 @@ struct CurveGraph: View {
             width: viewBox.width - pad.r - x0,
             height: viewBox.height - pad.t - pad.b
         )
-        ctx.fill(Path(rect), with: .color(Color(hex: "#ef4444").opacity(0.06)))
+        ctx.fill(Path(rect), with: .color(FCTheme.danger.opacity(0.06)))
     }
 
     private func drawCurveLine(ctx: GraphicsContext) {
@@ -126,19 +136,16 @@ struct CurveGraph: View {
     }
 
     private func drawAxisLabels(ctx: GraphicsContext) {
-        let labelColor = Color.white.opacity(0.35)
-        let font = Font.system(size: 8, weight: .regular, design: .monospaced)
-
-        // Y labels: 0, 25, 50, 75, 100
-        for d in [0.0, 25, 50, 75, 100] {
+        // Y labels
+        for d in Self.yTicks {
             let y = yFor(d)
-            let text = Text("\(Int(d))").font(font).foregroundColor(labelColor)
+            let text = Text("\(Int(d))").font(Self.axisLabelFont).foregroundColor(Self.axisLabelColor)
             ctx.draw(text, at: CGPoint(x: 4, y: y))
         }
-        // X labels: 30°, 50°, 70°, 90°
-        for t in [30.0, 50, 70, 90] {
+        // X labels
+        for t in Self.xTicks {
             let x = xFor(t)
-            let text = Text("\(Int(t))°").font(font).foregroundColor(labelColor)
+            let text = Text("\(Int(t))°").font(Self.axisLabelFont).foregroundColor(Self.axisLabelColor)
             ctx.draw(text, at: CGPoint(x: x, y: viewBox.height - 8))
         }
     }

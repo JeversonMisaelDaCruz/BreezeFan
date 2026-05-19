@@ -25,6 +25,16 @@ import AppKit
 ///   | any     | true        | palette systemYellow (priority warning)  |
 enum StatusIcon {
 
+    /// Shared RPM formatter — allocated once at class load.
+    /// NumberFormatter is heavy to construct; reusing it eliminates per-tooltip allocation
+    /// (tooltip refreshes every ~2s when the menu bar item is visible).
+    private static let rpmFormatter: NumberFormatter = {
+        let f = NumberFormatter()
+        f.numberStyle = .decimal
+        f.groupingSeparator = ","
+        return f
+    }()
+
     /// Tooltip text for the status item — `BreezeFan · <temp> · <RPM>`.
     static func tooltip(snapshot: SensorSnapshot) -> String {
         let temp: String
@@ -35,10 +45,7 @@ enum StatusIcon {
         }
         let rpm: String
         if let r = snapshot.leftRPM {
-            let f = NumberFormatter()
-            f.numberStyle = .decimal
-            f.groupingSeparator = ","
-            rpm = "\(f.string(from: NSNumber(value: r)) ?? "\(r)") RPM"
+            rpm = "\(rpmFormatter.string(from: NSNumber(value: r)) ?? "\(r)") RPM"
         } else {
             rpm = "— RPM"
         }

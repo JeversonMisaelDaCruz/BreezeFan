@@ -21,21 +21,21 @@ struct FCWallpaper: View {
         ZStack {
             // Base linear (160°)
             LinearGradient(
-                colors: [Color(hex: "#1e1b4b"), Color(hex: "#0c0a1f")],
+                colors: [FCTheme.wallpaperBaseTop, FCTheme.wallpaperBaseBottom],
                 startPoint: UnitPoint(x: 0.15, y: 0),
                 endPoint: UnitPoint(x: 0.85, y: 1)
             )
 
             // Indigo blob (30%, 20%) — large
-            radialBlob(color: Color(hex: "#6366f1"), at: UnitPoint(x: 0.30, y: 0.20),
+            radialBlob(color: FCTheme.wallpaperIndigo, at: UnitPoint(x: 0.30, y: 0.20),
                        widthRatio: 0.70, heightRatio: 0.50, opacity: 0.65)
 
             // Cyan (85%, 90%) — small
-            radialBlob(color: Color(hex: "#06b6d4"), at: UnitPoint(x: 0.85, y: 0.90),
+            radialBlob(color: FCTheme.wallpaperCyan, at: UnitPoint(x: 0.85, y: 0.90),
                        widthRatio: 0.45, heightRatio: 0.35, opacity: 0.85)
 
             // Magenta (15%, 80%) — medium
-            radialBlob(color: Color(hex: "#d946ef"), at: UnitPoint(x: 0.15, y: 0.80),
+            radialBlob(color: FCTheme.wallpaperMagenta, at: UnitPoint(x: 0.15, y: 0.80),
                        widthRatio: 0.50, heightRatio: 0.40, opacity: 0.75)
 
             // Accent (80%, 15%) — main, tied to user's accent setting

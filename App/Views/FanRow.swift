@@ -114,37 +114,55 @@ struct FanRow: View {
 
     private var rpmDisplay: String {
         guard let rpm else { return "—" }
-        let f = NumberFormatter()
-        f.numberStyle = .decimal
-        f.groupingSeparator = ","
-        return f.string(from: NSNumber(value: rpm)) ?? "\(rpm)"
+        return FanRow.rpmFormatter.string(from: NSNumber(value: rpm)) ?? "\(rpm)"
     }
 
     private var dutyDisplay: String {
         guard let d = duty else { return "—" }
         return "\(Int((d * 100).rounded()))%"
     }
+
+    /// Shared RPM formatter — single allocation per process lifetime.
+    /// SwiftUI bodies recompute frequently; a fresh NumberFormatter per render
+    /// was a measurable allocation source.
+    private static let rpmFormatter: NumberFormatter = {
+        let f = NumberFormatter()
+        f.numberStyle = .decimal
+        f.groupingSeparator = ","
+        return f
+    }()
 }
 
-/// Spinning fan icon. Uses `TimelineView(.animation)` so duty changes adjust speed
-/// without cancelling the running animation.
+/// Spinning fan icon.
+///
+/// When `spinDuration` is `nil` (fan stopped) the view falls back to a static
+/// `Image` — no `TimelineView`, no per-frame redraw. When spinning, we use a
+/// `TimelineView(.animation)` so duty changes can adjust speed without cancelling
+/// the running animation. The fan glyph is decorative — capping the frame budget
+/// matters when both fans + the menu bar icon also redraw.
 struct FanGlyph: View {
     let spinDuration: Double?
 
     var body: some View {
-        TimelineView(.animation) { context in
-            let angle = computeAngle(at: context.date)
+        if let dur = spinDuration, dur > 0 {
+            TimelineView(.animation) { context in
+                Image(systemName: "fan.fill")
+                    .resizable()
+                    .scaledToFit()
+                    .foregroundStyle(Color.white)
+                    .rotationEffect(.degrees(Self.angle(at: context.date, duration: dur)))
+            }
+        } else {
             Image(systemName: "fan.fill")
                 .resizable()
                 .scaledToFit()
                 .foregroundStyle(Color.white)
-                .rotationEffect(.degrees(angle))
         }
     }
 
-    private func computeAngle(at date: Date) -> Double {
-        guard let dur = spinDuration, dur > 0 else { return 0 }
+    @inline(__always)
+    private static func angle(at date: Date, duration: Double) -> Double {
         let elapsed = date.timeIntervalSinceReferenceDate
-        return (elapsed * 360.0 / dur).truncatingRemainder(dividingBy: 360.0)
+        return (elapsed * 360.0 / duration).truncatingRemainder(dividingBy: 360.0)
     }
 }
