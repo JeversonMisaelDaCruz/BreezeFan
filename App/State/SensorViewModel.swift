@@ -73,17 +73,29 @@ final class SensorViewModel {
         }
     }
 
-    /// Fetches fan ceilings from helper if not yet cached. Idempotent.
+    /// Fetches fan ceilings + hardware capabilities from helper. Idempotent —
+    /// only fires when AppState doesn't yet have data.
     private func fetchCeilingsIfNeeded() async {
-        guard AppState.shared.fanCeilings == nil else { return }
-        do {
-            let ceilings = try await HelperClient.shared.getFanCeilings()
-            let m = "fetchCeilings: f0=\(ceilings.f0Mn)..\(ceilings.f0Mx) f1=\(ceilings.f1Mn)..\(ceilings.f1Mx) valid=\(ceilings.valid)"
-            AppLogger.xpc.info("\(m, privacy: .public)")
-            AppState.shared.fanCeilings = ceilings
-        } catch {
-            let m = "fetchCeilings: FAILED \(error)"
-            AppLogger.xpc.info("\(m, privacy: .public)")
+        if AppState.shared.fanCeilings == nil {
+            do {
+                let ceilings = try await HelperClient.shared.getFanCeilings()
+                let m = "fetchCeilings: f0=\(ceilings.f0Mn)..\(ceilings.f0Mx) f1=\(ceilings.f1Mn)..\(ceilings.f1Mx) valid=\(ceilings.valid)"
+                AppLogger.xpc.info("\(m, privacy: .public)")
+                AppState.shared.fanCeilings = ceilings
+            } catch {
+                AppLogger.xpc.info("fetchCeilings: FAILED \(error.localizedDescription, privacy: .public)")
+            }
+        }
+
+        if AppState.shared.hardware.modelIdentifier.isEmpty {
+            do {
+                let caps = try await HelperClient.shared.getHardwareProfile()
+                let m = "fetchCaps: \(caps.displayName) (\(caps.modelIdentifier)) fanCount=\(caps.fanCount) controlSupported=\(caps.controlSupported)"
+                AppLogger.xpc.info("\(m, privacy: .public)")
+                AppState.shared.hardware = caps
+            } catch {
+                AppLogger.xpc.info("fetchCaps: FAILED \(error.localizedDescription, privacy: .public)")
+            }
         }
     }
 

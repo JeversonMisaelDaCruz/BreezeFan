@@ -174,20 +174,36 @@ struct MainView: View {
     //   label "Fans", VStack of GlassFanRow with gap 10.
 
     private var fansCard: some View {
-        FCGlassSurface(radius: FCRadius.card, intensity: 0.85, sheen: true) {
+        let fanCount = appState.hardware.fanCount
+        return FCGlassSurface(radius: FCRadius.card, intensity: 0.85, sheen: true) {
             VStack(alignment: .leading, spacing: 10) {
                 sectionLabel("FANS")
                     .padding(.bottom, 0)
 
-                FanRow(label: "Left Fan",
-                       rpm: sensorVM.snapshot.leftRPM,
-                       duty: sensorVM.snapshot.leftDuty,
-                       maxRPM: appState.fanCeilings?.f0Mx ?? 6500)
+                if fanCount == 0 {
+                    // Fanless Mac (e.g. MacBook Air) — temperature monitoring only.
+                    HStack(spacing: 6) {
+                        Image(systemName: "wind")
+                            .font(.system(size: 11))
+                            .foregroundStyle(Color.white.opacity(0.6))
+                        Text("Passive cooling — temperature monitoring only")
+                            .font(.system(size: 11))
+                            .foregroundStyle(Color.white.opacity(0.7))
+                    }
+                    .padding(.vertical, 4)
+                } else {
+                    FanRow(label: fanCount == 1 ? "Fan" : "Left Fan",
+                           rpm: sensorVM.snapshot.leftRPM,
+                           duty: sensorVM.snapshot.leftDuty,
+                           maxRPM: appState.fanCeilings?.f0Mx ?? 6500)
 
-                FanRow(label: "Right Fan",
-                       rpm: sensorVM.snapshot.rightRPM,
-                       duty: sensorVM.snapshot.rightDuty,
-                       maxRPM: appState.fanCeilings?.f1Mx ?? 6500)
+                    if fanCount >= 2 {
+                        FanRow(label: "Right Fan",
+                               rpm: sensorVM.snapshot.rightRPM,
+                               duty: sensorVM.snapshot.rightDuty,
+                               maxRPM: appState.fanCeilings?.f1Mx ?? 6500)
+                    }
+                }
             }
             .padding(.vertical, 14)
             .padding(.horizontal, 16)
@@ -200,17 +216,33 @@ struct MainView: View {
     //   label "Mode", 2x2 grid with gap 6.
 
     private var modeCard: some View {
-        FCGlassSurface(radius: FCRadius.card, intensity: 0.85, sheen: true) {
+        let controlSupported = appState.hardware.controlSupported
+        let enabled = sensorVM.helperReachable && controlSupported
+        return FCGlassSurface(radius: FCRadius.card, intensity: 0.85, sheen: true) {
             VStack(alignment: .leading, spacing: 10) {
                 sectionLabel("MODE")
                 PresetGrid()
-                    .disabled(!sensorVM.helperReachable)
-                    .opacity(sensorVM.helperReachable ? 1.0 : 0.4)
+                    .disabled(!enabled)
+                    .opacity(enabled ? 1.0 : 0.4)
+                if !controlSupported && sensorVM.helperReachable {
+                    Text(unsupportedHardwareMessage)
+                        .font(.system(size: 9))
+                        .foregroundStyle(Color.white.opacity(0.45))
+                        .lineLimit(2)
+                }
             }
             .padding(.vertical, 14)
             .padding(.horizontal, 16)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+    }
+
+    private var unsupportedHardwareMessage: String {
+        let model = appState.hardware.modelIdentifier
+        if appState.hardware.fanCount == 0 {
+            return "Fan control unavailable on \(model.isEmpty ? "this Mac" : appState.hardware.displayName)."
+        }
+        return "Fan control not yet supported on \(model). Temperature monitoring only."
     }
 
     // MARK: - Card 4: Footer (Edit fan curve)

@@ -38,6 +38,11 @@ final class AppState {
     /// Presets are disabled while nil.
     var fanCeilings: FanCeilings? = nil
 
+    /// Hardware capabilities resolved by the helper at boot. nil until the
+    /// first XPC fetch. UI uses fanCount + controlSupported to decide whether
+    /// to render the right-fan row, allow preset selection, etc.
+    var hardware: HardwareCapabilities = .unknown
+
     /// When true, app runs as `.accessory` (no Dock icon). Persisted in state.json.
     var menuBarOnly: Bool = false
 

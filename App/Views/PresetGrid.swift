@@ -60,7 +60,9 @@ struct PresetGrid: View {
     }
 
     private var isDisabled: Bool {
-        appState.isReadOnly || appState.fanCeilings == nil
+        appState.isReadOnly
+            || !appState.hardware.controlSupported
+            || appState.fanCeilings == nil
     }
 
     private func shortcutKey(for index: Int) -> Character {
