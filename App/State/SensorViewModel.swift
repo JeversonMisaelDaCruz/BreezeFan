@@ -41,6 +41,12 @@ final class SensorViewModel {
         do {
             let snap = try await HelperClient.shared.getSnapshot()
             self.snapshot = snap
+            // Mirror the snapshot into AppState so the menu-bar status icon /
+            // tooltip — which observe AppState, not this VM — see fresh data.
+            // Without this, `StatusItemController.refreshIcon()` would always
+            // read `.empty` and the smcConflict warning indicator would never trip.
+            AppState.shared.snapshot = snap
+            AppState.shared.smcConflict = snap.smcConflict
             let wasReachable = self.helperReachable
             self.helperReachable = true
             self.lastError = nil
@@ -51,7 +57,7 @@ final class SensorViewModel {
         } catch {
             self.helperReachable = false
             self.lastError = (error as? LocalizedError)?.errorDescription ?? "\(error)"
-            self.snapshot = SensorSnapshot(
+            let staleSnap = SensorSnapshot(
                 leftRPM: snapshot.leftRPM,
                 rightRPM: snapshot.rightRPM,
                 leftDuty: snapshot.leftDuty,
@@ -61,6 +67,8 @@ final class SensorViewModel {
                 stale: true,
                 smcConflict: snapshot.smcConflict
             )
+            self.snapshot = staleSnap
+            AppState.shared.snapshot = staleSnap
             AppState.shared.fanCeilings = nil
         }
     }
@@ -79,12 +87,7 @@ final class SensorViewModel {
         }
     }
 
-    var fanCount: Int {
-        var count = 0
-        if (snapshot.leftRPM ?? 0) > 0 { count += 1 }
-        if (snapshot.rightRPM ?? 0) > 0 { count += 1 }
-        return count
-    }
+    var fanCount: Int { snapshot.activeFanCount }
 
     func subtext(unit: AppState.TempUnit) -> String {
         if !helperReachable {

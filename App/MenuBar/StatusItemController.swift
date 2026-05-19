@@ -175,12 +175,33 @@ final class StatusItemController: NSObject {
     // MARK: - State observation
 
     private func startObserving() {
-        // Update tooltip + tint every 1s based on snapshot/mode/conflict.
+        // Update tooltip + tint every 1s based on snapshot/mode/conflict. Also
+        // poll the helper directly when the snapshot is stale — this keeps the
+        // menu bar accurate in *menu-bar-only* mode where neither the window's
+        // nor the popover's `SensorViewModel` is alive to push fresh data.
         observerTask = Task { @MainActor [weak self] in
             while !Task.isCancelled {
+                await self?.refreshFromHelperIfStale()
                 self?.refreshIcon()
                 try? await Task.sleep(nanoseconds: 1_000_000_000)
             }
+        }
+    }
+
+    /// If no view-model has pushed a fresh snapshot recently, poll the helper
+    /// directly. Cheap: one XPC round trip + JSON decode (~88 bytes).
+    @MainActor
+    private func refreshFromHelperIfStale() async {
+        let age = Date().timeIntervalSince(AppState.shared.snapshot.timestamp)
+        // Only poll when stale — when a view's VM is active it pushes 1Hz and
+        // the age stays well under this threshold, so we no-op.
+        guard age > 1.5 else { return }
+        do {
+            let snap = try await HelperClient.shared.getSnapshot()
+            AppState.shared.snapshot = snap
+            AppState.shared.smcConflict = snap.smcConflict
+        } catch {
+            // Helper unreachable — leave the existing (stale) snapshot in place.
         }
     }
 
