@@ -35,6 +35,36 @@ Replacement for [crystalidea/macs-fan-control](https://github.com/crystalidea/ma
 
 Output: `dist/BreezeFan-<version>.dmg`. See language-specific docs above for full instructions and Gatekeeper notes.
 
+## What's new
+
+### 0.5.0 — perf pass + menu-bar fix
+
+- **Bug fix — menu bar tooltip / warning indicator now update.** Pre-0.5.0 the
+  status item read from an `AppState.snapshot` field that nothing wrote to;
+  hovering the icon showed `BreezeFan · — · — RPM` permanently and the
+  SMC-conflict yellow tint never appeared. Fixed end-to-end (window-open,
+  popover-open, and menu-bar-only modes all stay accurate now).
+- **Perf — SMC hot path halved.** Per-key `(dataSize, dataType)` cache in
+  `SMCReader` / `SMCWriter` skips the `kSMCGetKeyInfo` round trip after first
+  read. ~22 → ~11 `IOConnectCallStructMethod` calls/sec in steady-state curve
+  mode.
+- **Perf — zero-allocation SMC decode.** `SMCBytes` now exposes its 32-byte
+  tuple via an unsafe pointer instead of `Mirror` reflection.
+- **Perf — no disk IO on the tick path.** `ControlConfigStore` keeps the
+  current config in memory; the control loop reads from the cache every 1.5 s
+  instead of `fileExists` + `Data(contentsOf:)` + JSON decode.
+- **Perf — shared `JSONEncoder` / `JSONDecoder` across XPC.** App and helper
+  each reuse a single coder instance instead of allocating per call.
+- **Perf — UI hot paths.** `NumberFormatter`, `Font`, `Color(hex:)`, and tick
+  arrays moved out of SwiftUI `body` into static `let`s; `FanGlyph` stops
+  ticking at display refresh rate when the fan isn't spinning;
+  `Color(hex:)` rewritten as a `utf8`-bytes parser.
+- **Bug fix — `setMode(.auto)` race.** Added a `writeLock` in `ControlLoop`
+  so an in-flight tick can't undo `revertToAuto`'s `F0Md=0` writes with a
+  trailing `F0Md=1`.
+- **Tests.** Added smoke tests for the race fix, the config cache, and
+  `SensorSnapshot.activeFanCount`. Run via `xcodebuild test`.
+
 ## Troubleshooting
 
 ### BreezeFan crashes at login (Login Item crash — 0.4.0 only)

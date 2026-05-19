@@ -53,8 +53,8 @@ targets:
         CFBundleName: BreezeFan
         CFBundleDisplayName: BreezeFan
         CFBundleIdentifier: com.breezefan.app
-        CFBundleShortVersionString: "0.4.1"
-        CFBundleVersion: "5"
+        CFBundleShortVersionString: "0.5.0"
+        CFBundleVersion: "6"
         CFBundleIconFile: AppIcon
         CFBundleIconName: AppIcon
         LSMinimumSystemVersion: "14.0"
@@ -123,6 +123,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.breezefan.tests
         PRODUCT_NAME: BreezeFanTests
         SWIFT_OBJC_BRIDGING_HEADER: ""
+        GENERATE_INFOPLIST_FILE: YES
     dependencies:
       - target: BreezeFan
 
