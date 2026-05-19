@@ -168,6 +168,61 @@ public enum HelperError: Error, Codable, Equatable, Sendable, LocalizedError {
     }
 }
 
+/// Hardware capabilities advertised by the helper after probing the active
+/// machine. The App uses this to decide which UI affordances to show
+/// (e.g. hide the right-fan row on a 1-fan Mac, switch to "passive cooling"
+/// mode on a fanless Air, gray out controls on an unrecognized model).
+///
+/// Returned by `HelperProtocol.getHardwareProfile`, JSON-encoded.
+public struct HardwareCapabilities: Codable, Sendable, Equatable {
+    /// `IOPlatformExpertDevice` model string — e.g. `"MacBookPro18,3"`.
+    public let modelIdentifier: String
+
+    /// Human-friendly name shown in the UI — e.g. `"MacBook Pro 14\" M1 Pro"`.
+    public let displayName: String
+
+    /// Number of fans the helper expects to read/write. `0` for fanless
+    /// machines (MacBook Air), `1` for single-fan MacBook Pros, `2` for
+    /// every Pro/Max class machine BreezeFan currently knows about.
+    public let fanCount: Int
+
+    /// True when the helper has a vetted profile for this model: SMC keys are
+    /// known to be valid, fan ceilings are within the expected range, and the
+    /// safety override has a temperature source to react to. False when the
+    /// model is unrecognized or fanless — the App should treat the UI as
+    /// read-only.
+    public let controlSupported: Bool
+
+    /// True when the SMC reader probed real temperature data from the keys
+    /// in this profile. False means the IOHID fallback is the only source
+    /// (or no source at all). UI may show a soft warning.
+    public let temperatureSourceValid: Bool
+
+    public init(
+        modelIdentifier: String,
+        displayName: String,
+        fanCount: Int,
+        controlSupported: Bool,
+        temperatureSourceValid: Bool
+    ) {
+        self.modelIdentifier = modelIdentifier
+        self.displayName = displayName
+        self.fanCount = fanCount
+        self.controlSupported = controlSupported
+        self.temperatureSourceValid = temperatureSourceValid
+    }
+
+    /// Fallback when the helper isn't installed / unreachable. App defaults to
+    /// a conservative read-only stance until live data arrives.
+    public static let unknown = HardwareCapabilities(
+        modelIdentifier: "",
+        displayName: "Detecting hardware…",
+        fanCount: 0,
+        controlSupported: false,
+        temperatureSourceValid: false
+    )
+}
+
 /// Hardware fan ceilings reported by the helper after SMC boot read.
 /// `valid` is true when all four readings fell within the plausible range
 /// (Mn ∈ [500, 3000], Mx ∈ [3500, 10000]). Otherwise the helper used safe

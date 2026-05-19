@@ -21,7 +21,13 @@ import Foundation
     func applyPreset(_ presetRawValue: String, reply: @escaping (Bool, Error?) -> Void)
 
     /// Returns hardware model identifier (e.g. "MacBookPro18,3") and `readOnly` flag.
+    /// Legacy — prefer `getHardwareProfile` which carries fanCount + displayName.
     func getModelInfo(reply: @escaping (String, Bool) -> Void)
+
+    /// Returns the active `HardwareCapabilities` for the running Mac
+    /// (model identifier, display name, fan count, controlSupported flag,
+    /// temperatureSourceValid). JSON-encoded inside Data.
+    func getHardwareProfile(reply: @escaping (Data?, Error?) -> Void)
 
     /// Returns the cached fan ceilings (F0Mn/F0Mx/F1Mn/F1Mx) read at helper boot.
     /// JSON-encoded `FanCeilings` inside Data.

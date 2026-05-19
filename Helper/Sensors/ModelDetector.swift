@@ -1,13 +1,12 @@
 import Foundation
 import IOKit
 
-/// Reads the hardware model identifier from `IOPlatformExpertDevice`.
+/// Reads the hardware model identifier from `IOPlatformExpertDevice` and
+/// resolves it against the `ModelProfile` registry.
+///
 /// Lives in Helper because root privileges may make IOKit calls more reliable;
 /// also keeps the App sandboxed-clean.
 enum ModelDetector {
-    /// The single model identifier the MVP supports.
-    static let supportedModel = "MacBookPro18,3"
-
     /// Reads `model` property from `IOPlatformExpertDevice`. Returns the raw
     /// identifier (e.g. "MacBookPro18,3"). Returns "" on failure.
     static var current: String = {
@@ -34,7 +33,16 @@ enum ModelDetector {
         return ""
     }()
 
+    /// Resolved profile for the running machine. Cached at first access.
+    static var currentProfile: ModelProfile = {
+        let id = current
+        return ModelProfile.known(for: id)
+            ?? ModelProfile.defensiveUnknown(identifier: id)
+    }()
+
+    /// Returns true if the running model has a vetted control profile —
+    /// i.e. the helper can safely write F0Md/F1Md/F0Tg/F1Tg.
     static func isSupported(model: String) -> Bool {
-        model == supportedModel
+        ModelProfile.known(for: model)?.controlSupported ?? false
     }
 }
