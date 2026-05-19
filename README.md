@@ -37,6 +37,24 @@ Output: `dist/BreezeFan-<version>.dmg`. See language-specific docs above for ful
 
 ## What's new
 
+### 0.6.0 — multi-MacBook profiles + crash hardening
+
+- **Multi-Mac support.** `ModelProfile` registry maps each
+  `IOPlatformExpertDevice/model` to its SMC topology (fan count, CPU temp
+  keys, control policy). Known profiles ship for MacBook Pro 14"/16" M1
+  Pro/Max (`MacBookPro18,1-4`) and MacBook Air M1/M2/M3 (read-only —
+  passive cooling, temperature monitoring only). Unknown models fall back
+  to a defensive read-only mode rather than pretending to control fans
+  without a verified temperature source.
+- **Hardware-aware UI.** Fan rows now respect `fanCount`: hidden on Air,
+  single row on 1-fan Pros. Preset grid disables on unsupported hardware
+  with an explanation line.
+- **Safer XPC.** `HelperProtocol.getHardwareProfile` ships the capabilities
+  snapshot to the App; the legacy `getModelInfo` stays for compat.
+- **Crash surfaces hardened.** Force casts in `HelperClient.proxy` and the
+  application-support path fallback in `StateStore` no longer trap; added
+  a non-trapping `SMCKey(validating:)` for runtime-provided keys.
+
 ### 0.5.0 — perf pass + menu-bar fix
 
 - **Bug fix — menu bar tooltip / warning indicator now update.** Pre-0.5.0 the
