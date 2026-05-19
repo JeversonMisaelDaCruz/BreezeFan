@@ -15,8 +15,23 @@ public struct SMCKey: Equatable, Hashable, Sendable {
         case flt   // 32-bit float (Apple Silicon)
     }
 
+    /// Constructs a key from a 4-char ASCII code. Trapping on bad input is
+    /// intentional — every call site in this codebase is a 4-char string
+    /// literal, so reaching the precondition means a programmer error that
+    /// should be caught at runtime in debug builds. For runtime-provided keys
+    /// (e.g. from a config file), use ``init(validating:dataType:)`` which
+    /// returns `nil` instead.
     public init(_ code: String, _ dataType: DataType = .fpe2) {
         precondition(code.count == 4, "SMC key code must be 4 characters")
+        self.code = code
+        self.dataType = dataType
+    }
+
+    /// Non-trapping init for keys whose source isn't a compile-time literal.
+    /// Returns `nil` when `code.count != 4` or the bytes aren't printable ASCII.
+    public init?(validating code: String, dataType: DataType = .fpe2) {
+        guard code.utf8.count == 4 else { return nil }
+        for byte in code.utf8 where byte < 0x20 || byte > 0x7E { return nil }
         self.code = code
         self.dataType = dataType
     }
@@ -61,6 +76,7 @@ public extension SMCKey {
     static let tg05 = SMCKey("Tg05", .sp78)
     static let tg0D = SMCKey("Tg0D", .sp78)
 
-    /// All CPU performance cluster keys, in priority order.
+    /// Legacy alias kept for any external reference; new code reads
+    /// temperature keys from the active `ModelProfile.tempKeys`.
     static let cpuPerfClusters: [SMCKey] = [.tp01, .tp05, .tp09, .tp0D, .tp0H]
 }

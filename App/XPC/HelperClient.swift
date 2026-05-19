@@ -57,11 +57,20 @@ final class HelperClient {
         return conn
     }
 
-    private func proxy(error errorHandler: @escaping (Error) -> Void = { _ in }) -> HelperProtocol {
+    private func proxy(error errorHandler: @escaping (Error) -> Void = { _ in }) -> HelperProtocol? {
         let conn = ensureConnection()
-        return conn.remoteObjectProxyWithErrorHandler { err in
+        let raw = conn.remoteObjectProxyWithErrorHandler { err in
             errorHandler(err)
-        } as! HelperProtocol
+        }
+        // Defensive cast — a force `as!` would crash if the XPC interface ever
+        // drifts out of sync (e.g. app updates before helper does on a stale
+        // install). Returning nil lets callers surface the error as a normal
+        // XPC failure instead of trapping.
+        guard let proxy = raw as? HelperProtocol else {
+            errorHandler(HelperClientError.decodingFailed)
+            return nil
+        }
+        return proxy
     }
 
     /// Wraps any XPC call in a 2s timeout race so the UI never freezes.
@@ -85,9 +94,9 @@ final class HelperClient {
             try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Date, Error>) in
                 Task { @MainActor in
                     var resumed = false
-                    let p = self.proxy { err in
+                    guard let p = self.proxy(error: { err in
                         if !resumed { resumed = true; cont.resume(throwing: HelperClientError.underlying(err)) }
-                    }
+                    }) else { return }
                     p.ping { date in
                         if !resumed { resumed = true; cont.resume(returning: date) }
                     }
@@ -101,9 +110,9 @@ final class HelperClient {
             try await withCheckedThrowingContinuation { (cont: CheckedContinuation<SensorSnapshot, Error>) in
                 Task { @MainActor in
                     var resumed = false
-                    let p = self.proxy { err in
+                    guard let p = self.proxy(error: { err in
                         if !resumed { resumed = true; cont.resume(throwing: HelperClientError.underlying(err)) }
-                    }
+                    }) else { return }
                     p.getSnapshot { data, error in
                         if resumed { return }
                         if let error { resumed = true; cont.resume(throwing: error); return }
@@ -128,9 +137,9 @@ final class HelperClient {
             try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
                 Task { @MainActor in
                     var resumed = false
-                    let p = self.proxy { err in
+                    guard let p = self.proxy(error: { err in
                         if !resumed { resumed = true; cont.resume(throwing: HelperClientError.underlying(err)) }
-                    }
+                    }) else { return }
                     p.setMode(data) { _, error in
                         if resumed { return }
                         resumed = true
@@ -147,9 +156,9 @@ final class HelperClient {
             try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
                 Task { @MainActor in
                     var resumed = false
-                    let p = self.proxy { err in
+                    guard let p = self.proxy(error: { err in
                         if !resumed { resumed = true; cont.resume(throwing: HelperClientError.underlying(err)) }
-                    }
+                    }) else { return }
                     p.setCurve(data) { _, error in
                         if resumed { return }
                         resumed = true
@@ -165,9 +174,9 @@ final class HelperClient {
             try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
                 Task { @MainActor in
                     var resumed = false
-                    let p = self.proxy { err in
+                    guard let p = self.proxy(error: { err in
                         if !resumed { resumed = true; cont.resume(throwing: HelperClientError.underlying(err)) }
-                    }
+                    }) else { return }
                     p.applyPreset(preset.rawValue) { _, error in
                         if resumed { return }
                         resumed = true
@@ -183,9 +192,9 @@ final class HelperClient {
             try await withCheckedThrowingContinuation { (cont: CheckedContinuation<FanCeilings, Error>) in
                 Task { @MainActor in
                     var resumed = false
-                    let p = self.proxy { err in
+                    guard let p = self.proxy(error: { err in
                         if !resumed { resumed = true; cont.resume(throwing: HelperClientError.underlying(err)) }
-                    }
+                    }) else { return }
                     p.getFanCeilings { data, error in
                         if resumed { return }
                         if let error { resumed = true; cont.resume(throwing: error); return }
@@ -204,14 +213,40 @@ final class HelperClient {
         }
     }
 
+    func getHardwareProfile() async throws -> HardwareCapabilities {
+        try await withTimeout("getHardwareProfile") {
+            try await withCheckedThrowingContinuation { (cont: CheckedContinuation<HardwareCapabilities, Error>) in
+                Task { @MainActor in
+                    var resumed = false
+                    guard let p = self.proxy(error: { err in
+                        if !resumed { resumed = true; cont.resume(throwing: HelperClientError.underlying(err)) }
+                    }) else { return }
+                    p.getHardwareProfile { data, error in
+                        if resumed { return }
+                        if let error { resumed = true; cont.resume(throwing: error); return }
+                        guard let data else {
+                            resumed = true; cont.resume(throwing: HelperClientError.decodingFailed); return
+                        }
+                        do {
+                            let caps = try Self.decoder.decode(HardwareCapabilities.self, from: data)
+                            resumed = true; cont.resume(returning: caps)
+                        } catch {
+                            resumed = true; cont.resume(throwing: error)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     func getModelInfo() async throws -> (model: String, readOnly: Bool) {
         try await withTimeout("getModelInfo") {
             try await withCheckedThrowingContinuation { (cont: CheckedContinuation<(String, Bool), Error>) in
                 Task { @MainActor in
                     var resumed = false
-                    let p = self.proxy { err in
+                    guard let p = self.proxy(error: { err in
                         if !resumed { resumed = true; cont.resume(throwing: HelperClientError.underlying(err)) }
-                    }
+                    }) else { return }
                     p.getModelInfo { model, readOnly in
                         if !resumed { resumed = true; cont.resume(returning: (model, readOnly)) }
                     }
@@ -225,9 +260,9 @@ final class HelperClient {
             try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
                 Task { @MainActor in
                     var resumed = false
-                    let p = self.proxy { err in
+                    guard let p = self.proxy(error: { err in
                         if !resumed { resumed = true; cont.resume(throwing: HelperClientError.underlying(err)) }
-                    }
+                    }) else { return }
                     p.uninstall { _, error in
                         if resumed { return }
                         resumed = true

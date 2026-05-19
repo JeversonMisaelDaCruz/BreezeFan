@@ -48,10 +48,15 @@ public struct PersistedAppState: Codable, Equatable {
 
 public final class StateStore {
     public static var defaultPath: URL {
-        let dir = FileManager.default
+        // `urls(for:in:)` returns an empty array only when the system has no
+        // application support directory at all — which is effectively never on
+        // a real user account, but we fall back to a temporary path instead of
+        // crashing on `!` if it does happen.
+        let baseURL = FileManager.default
             .urls(for: .applicationSupportDirectory, in: .userDomainMask)
-            .first!
-            .appendingPathComponent("BreezeFan", isDirectory: true)
+            .first
+            ?? FileManager.default.temporaryDirectory
+        let dir = baseURL.appendingPathComponent("BreezeFan", isDirectory: true)
         return dir.appendingPathComponent("state.json")
     }
 
