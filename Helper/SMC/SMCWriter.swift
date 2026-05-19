@@ -14,6 +14,10 @@ public final class SMCWriterImpl: SMCWriting, @unchecked Sendable {
     private var connection: io_connect_t = 0
     private let queue = DispatchQueue(label: "com.breezefan.helper.smc.writer")
 
+    /// Cache of key info (dataSize, dataType), populated lazily on first probe.
+    /// Guarded by `queue`. Eliminates the per-write kSMCGetKeyInfo round trip.
+    private var keyInfoCache: [UInt32: (size: UInt32, type: UInt32)] = [:]
+
     public init() throws {
         let service = IOServiceGetMatchingService(
             kIOMainPortDefault,
@@ -35,91 +39,96 @@ public final class SMCWriterImpl: SMCWriting, @unchecked Sendable {
     }
 
     public func write(_ key: SMCKey, value: Double) -> Result<Void, SMCError> {
-        // Discover real type at write time by reading key info first.
-        var info = SMCParamStruct()
-        info.key = key.fourCC
-        info.data8 = 9 // kSMCGetKeyInfo
+        return queue.sync { () -> Result<Void, SMCError> in
+            let fourCC = key.fourCC
+            let info: (size: UInt32, type: UInt32)
+            if let cached = keyInfoCache[fourCC] {
+                info = cached
+            } else {
+                var probe = SMCParamStruct()
+                probe.key = fourCC
+                probe.data8 = 9 // kSMCGetKeyInfo
 
-        var infoOut = SMCParamStruct()
-        var infoSize = MemoryLayout<SMCParamStruct>.size
-        let infoStatus = withUnsafePointer(to: &info) { inPtr in
-            withUnsafeMutablePointer(to: &infoOut) { outPtr in
-                IOConnectCallStructMethod(connection, SMCSelector.kSMCHandleYPCEvent,
-                                          inPtr, MemoryLayout<SMCParamStruct>.size,
-                                          outPtr, &infoSize)
+                var probeOut = SMCParamStruct()
+                var probeSize = MemoryLayout<SMCParamStruct>.size
+                let probeStatus = withUnsafePointer(to: &probe) { inPtr in
+                    withUnsafeMutablePointer(to: &probeOut) { outPtr in
+                        IOConnectCallStructMethod(connection, SMCSelector.kSMCHandleYPCEvent,
+                                                  inPtr, MemoryLayout<SMCParamStruct>.size,
+                                                  outPtr, &probeSize)
+                    }
+                }
+                guard probeStatus == KERN_SUCCESS, probeOut.result == 0 else {
+                    return .failure(.writeFailed(kern: probeStatus))
+                }
+                info = (probeOut.keyInfo.dataSize, probeOut.keyInfo.dataType)
+                keyInfoCache[fourCC] = info
             }
-        }
-        guard infoStatus == KERN_SUCCESS, infoOut.result == 0 else {
-            return .failure(.writeFailed(kern: infoStatus))
-        }
 
-        let dataType = infoOut.keyInfo.dataType
-        let dataSize = Int(infoOut.keyInfo.dataSize)
-        let bytes: [UInt8]
-
-        switch dataType {
-        case 0x666C7420: // "flt " — most fan keys on Apple Silicon
-            let f = Float(value)
-            bytes = withUnsafeBytes(of: f) { Array($0) }
-        case 0x66706532: // "fpe2" — Intel fan keys
-            bytes = FPE2.encode(value)
-        case 0x75693820: // "ui8 "
-            bytes = [UInt8(min(max(0, value.rounded()), 255))]
-        case 0x75693136: // "ui16"
-            let v = UInt16(min(max(0, value.rounded()), Double(UInt16.max)))
-            bytes = [UInt8((v >> 8) & 0xFF), UInt8(v & 0xFF)]
-        default:
-            HelperLogger.smc.warn("SMCWriter unknown dataType FourCC=\(String(format: "0x%08x", dataType)) for \(key.code)")
-            return .failure(.unsupportedDataType(String(format: "0x%08x", dataType)))
+            let bytes: [UInt8]
+            switch info.type {
+            case 0x666C7420: // "flt " — most fan keys on Apple Silicon
+                let f = Float(value)
+                bytes = withUnsafeBytes(of: f) { Array($0) }
+            case 0x66706532: // "fpe2" — Intel fan keys
+                bytes = FPE2.encode(value)
+            case 0x75693820: // "ui8 "
+                bytes = [UInt8(min(max(0, value.rounded()), 255))]
+            case 0x75693136: // "ui16"
+                let v = UInt16(min(max(0, value.rounded()), Double(UInt16.max)))
+                bytes = [UInt8((v >> 8) & 0xFF), UInt8(v & 0xFF)]
+            default:
+                HelperLogger.smc.warn("SMCWriter unknown dataType FourCC=\(String(format: "0x%08x", info.type)) for \(key.code)")
+                return .failure(.unsupportedDataType(String(format: "0x%08x", info.type)))
+            }
+            return performWriteLocked(key: key, bytes: bytes, dataSize: info.size)
         }
-        return doWrite(key: key, bytes: bytes, dataSize: UInt32(dataSize))
     }
 
     public func writeUInt8(_ key: SMCKey, value: UInt8) -> Result<Void, SMCError> {
-        return doWrite(key: key, bytes: [value], dataSize: 1)
+        return queue.sync {
+            // Mode keys (F0Md/F1Md) are ui8 — no probe needed, no cache entry needed either.
+            return performWriteLocked(key: key, bytes: [value], dataSize: 1)
+        }
     }
 
-    private func doWrite(key: SMCKey, bytes: [UInt8], dataSize: UInt32) -> Result<Void, SMCError> {
-        queue.sync {
-            var input = SMCParamStruct()
-            input.key = key.fourCC
-            input.keyInfo.dataSize = dataSize
-            input.data8 = SMCSelector.kSMCWriteKey
+    /// Performs the actual write. MUST be invoked while holding `queue` (callers already do).
+    private func performWriteLocked(key: SMCKey, bytes: [UInt8], dataSize: UInt32) -> Result<Void, SMCError> {
+        var input = SMCParamStruct()
+        input.key = key.fourCC
+        input.keyInfo.dataSize = dataSize
+        input.data8 = SMCSelector.kSMCWriteKey
 
-            // Pack `bytes` into SMCBytes tuple.
-            withUnsafeMutablePointer(to: &input.bytes) { ptr in
-                ptr.withMemoryRebound(to: UInt8.self, capacity: 32) { buf in
-                    for (i, b) in bytes.prefix(32).enumerated() {
-                        buf[i] = b
-                    }
-                }
-            }
-
-            var output = SMCParamStruct()
-            var outputSize = MemoryLayout<SMCParamStruct>.size
-            let result = withUnsafePointer(to: &input) { inPtr in
-                withUnsafeMutablePointer(to: &output) { outPtr in
-                    IOConnectCallStructMethod(
-                        connection,
-                        SMCSelector.kSMCHandleYPCEvent,
-                        inPtr,
-                        MemoryLayout<SMCParamStruct>.size,
-                        outPtr,
-                        &outputSize
-                    )
-                }
-            }
-
-            if result == KERN_SUCCESS {
-                let inner = output.result
-                if inner == 0x84 { return .failure(.locked) }
-                if inner != 0 {
-                    return .failure(.writeFailed(kern: Int32(bitPattern: UInt32(inner))))
-                }
-                return .success(())
-            }
-            if result == KERN_NO_ACCESS { return .failure(.locked) }
-            return .failure(.writeFailed(kern: result))
+        // Pack `bytes` into the SMCBytes tuple in place — zero allocation.
+        input.bytes.withMutableRawBytes { buf in
+            let n = min(bytes.count, 32)
+            for i in 0..<n { buf[i] = bytes[i] }
         }
+
+        var output = SMCParamStruct()
+        var outputSize = MemoryLayout<SMCParamStruct>.size
+        let result = withUnsafePointer(to: &input) { inPtr in
+            withUnsafeMutablePointer(to: &output) { outPtr in
+                IOConnectCallStructMethod(
+                    connection,
+                    SMCSelector.kSMCHandleYPCEvent,
+                    inPtr,
+                    MemoryLayout<SMCParamStruct>.size,
+                    outPtr,
+                    &outputSize
+                )
+            }
+        }
+
+        if result == KERN_SUCCESS {
+            let inner = output.result
+            if inner == 0x84 { return .failure(.locked) }
+            if inner != 0 {
+                return .failure(.writeFailed(kern: Int32(bitPattern: UInt32(inner))))
+            }
+            return .success(())
+        }
+        if result == KERN_NO_ACCESS { return .failure(.locked) }
+        return .failure(.writeFailed(kern: result))
     }
 }

@@ -14,9 +14,18 @@ enum SMCSelector {
 }
 
 /// Live SMC reader. Opens a connection to `AppleSMC` service via IOServiceOpen.
+///
+/// Performance notes:
+/// - Key info (dataSize + dataType) is cached after the first read per key. Subsequent reads
+///   skip the kSMCGetKeyInfo round trip and issue a single IOConnectCallStructMethod.
+/// - Decode is zero-allocation: we read directly from the SMCBytes tuple via an unsafe
+///   pointer instead of materializing a [UInt8] every call.
 public final class SMCReaderImpl: SMCReading, @unchecked Sendable {
     private var connection: io_connect_t = 0
     private let queue = DispatchQueue(label: "com.breezefan.helper.smc.reader")
+
+    /// Cache of key info, populated lazily. Guarded by `queue`.
+    private var keyInfoCache: [UInt32: (size: UInt32, type: UInt32)] = [:]
 
     public init() throws {
         let service = IOServiceGetMatchingService(
@@ -44,28 +53,31 @@ public final class SMCReaderImpl: SMCReading, @unchecked Sendable {
 
     public func read(_ key: SMCKey) -> Result<Double, SMCError> {
         queue.sync {
-            // Step 1: read key info to discover data size + type.
-            var input = SMCParamStruct()
-            input.key = key.fourCC
-            input.data8 = 9 // kSMCGetKeyInfo
-
-            switch callStructMethod(input: input) {
-            case .failure(let err): return .failure(err)
-            case .success(let info):
-                let dataSize = Int(info.keyInfo.dataSize)
-                let dataType = info.keyInfo.dataType
-
-                // Step 2: read the actual value.
-                var readInput = SMCParamStruct()
-                readInput.key = key.fourCC
-                readInput.keyInfo.dataSize = info.keyInfo.dataSize
-                readInput.data8 = SMCSelector.kSMCReadKey
-
-                switch callStructMethod(input: readInput) {
+            let fourCC = key.fourCC
+            let info: (size: UInt32, type: UInt32)
+            if let cached = keyInfoCache[fourCC] {
+                info = cached
+            } else {
+                var probe = SMCParamStruct()
+                probe.key = fourCC
+                probe.data8 = 9 // kSMCGetKeyInfo
+                switch callStructMethod(input: probe) {
                 case .failure(let err): return .failure(err)
-                case .success(let output):
-                    return decodeDynamic(bytes: output.bytes, count: dataSize, raw: dataType)
+                case .success(let probed):
+                    info = (probed.keyInfo.dataSize, probed.keyInfo.dataType)
+                    keyInfoCache[fourCC] = info
                 }
+            }
+
+            var readInput = SMCParamStruct()
+            readInput.key = fourCC
+            readInput.keyInfo.dataSize = info.size
+            readInput.data8 = SMCSelector.kSMCReadKey
+
+            switch callStructMethod(input: readInput) {
+            case .failure(let err): return .failure(err)
+            case .success(var output):
+                return decodeDynamic(bytes: &output.bytes, count: Int(info.size), raw: info.type)
             }
         }
     }
@@ -73,66 +85,70 @@ public final class SMCReaderImpl: SMCReading, @unchecked Sendable {
     // MARK: - Decoding (uses runtime-reported type from SMC)
 
     /// Decodes the bytes based on the FourCC type code returned by SMC at read-time.
+    /// Zero allocation: reads directly from the 32-byte tuple via an unsafe pointer.
     /// On Apple Silicon, F0Mx/F0Mn are usually `flt ` (float), F0Ac/F0Tg are `flt ` too.
     /// On Intel, fan keys are `fpe2`. We honor whatever the SMC reports.
-    private func decodeDynamic(bytes: SMCBytes, count: Int, raw: UInt32) -> Result<Double, SMCError> {
-        let arr = bytes.toArray(count: count)
-        // FourCC codes (ASCII big-endian):
-        //   "fpe2" = 0x66706532, "flt " = 0x666C7420, "ui8 " = 0x75693820,
-        //   "ui16" = 0x75693136, "ui32" = 0x75693332, "sp78" = 0x73703738,
-        //   "si16" = 0x73693136, "si8 " = 0x73693820
-        switch raw {
-        case 0x666C7420: // "flt "
-            guard arr.count >= 4 else { return .failure(.decodingFailed) }
-            let v = arr.prefix(4).withUnsafeBytes { ptr -> Float in
-                ptr.load(as: Float.self)
-            }
-            return .success(Double(v))
+    private func decodeDynamic(bytes: inout SMCBytes, count: Int, raw: UInt32) -> Result<Double, SMCError> {
+        bytes.withRawBytes { ptr in
+            // FourCC codes (ASCII big-endian):
+            //   "fpe2" = 0x66706532, "flt " = 0x666C7420, "ui8 " = 0x75693820,
+            //   "ui16" = 0x75693136, "ui32" = 0x75693332, "sp78" = 0x73703738,
+            //   "si16" = 0x73693136, "si8 " = 0x73693820
+            switch raw {
+            case 0x666C7420: // "flt " — little-endian on Apple Silicon
+                guard count >= 4 else { return .failure(.decodingFailed) }
+                var f: Float = 0
+                memcpy(&f, ptr, 4)
+                return .success(Double(f))
 
-        case 0x66706532: // "fpe2"
-            return .success(FPE2.decode(arr))
+            case 0x66706532: // "fpe2" — big-endian fixed-point
+                guard count >= 2 else { return .failure(.decodingFailed) }
+                let raw16 = (UInt16(ptr[0]) << 8) | UInt16(ptr[1])
+                return .success(Double(raw16) / 4.0)
 
-        case 0x73703738: // "sp78"
-            guard arr.count >= 2 else { return .failure(.decodingFailed) }
-            let i16 = Int16(bitPattern: (UInt16(arr[0]) << 8) | UInt16(arr[1]))
-            return .success(Double(i16) / 256.0)
+            case 0x73703738: // "sp78"
+                guard count >= 2 else { return .failure(.decodingFailed) }
+                let i16 = Int16(bitPattern: (UInt16(ptr[0]) << 8) | UInt16(ptr[1]))
+                return .success(Double(i16) / 256.0)
 
-        case 0x75693820: // "ui8 "
-            guard arr.count >= 1 else { return .failure(.decodingFailed) }
-            return .success(Double(arr[0]))
+            case 0x75693820: // "ui8 "
+                guard count >= 1 else { return .failure(.decodingFailed) }
+                return .success(Double(ptr[0]))
 
-        case 0x75693136: // "ui16"
-            guard arr.count >= 2 else { return .failure(.decodingFailed) }
-            return .success(Double(UInt16(arr[0]) << 8 | UInt16(arr[1])))
+            case 0x75693136: // "ui16"
+                guard count >= 2 else { return .failure(.decodingFailed) }
+                return .success(Double(UInt16(ptr[0]) << 8 | UInt16(ptr[1])))
 
-        case 0x75693332: // "ui32"
-            guard arr.count >= 4 else { return .failure(.decodingFailed) }
-            let v = (UInt32(arr[0]) << 24) | (UInt32(arr[1]) << 16) | (UInt32(arr[2]) << 8) | UInt32(arr[3])
-            return .success(Double(v))
+            case 0x75693332: // "ui32"
+                guard count >= 4 else { return .failure(.decodingFailed) }
+                let v = (UInt32(ptr[0]) << 24) | (UInt32(ptr[1]) << 16) | (UInt32(ptr[2]) << 8) | UInt32(ptr[3])
+                return .success(Double(v))
 
-        case 0x73693136: // "si16"
-            guard arr.count >= 2 else { return .failure(.decodingFailed) }
-            let i16 = Int16(bitPattern: (UInt16(arr[0]) << 8) | UInt16(arr[1]))
-            return .success(Double(i16))
+            case 0x73693136: // "si16"
+                guard count >= 2 else { return .failure(.decodingFailed) }
+                let i16 = Int16(bitPattern: (UInt16(ptr[0]) << 8) | UInt16(ptr[1]))
+                return .success(Double(i16))
 
-        case 0x73693820: // "si8 "
-            guard arr.count >= 1 else { return .failure(.decodingFailed) }
-            return .success(Double(Int8(bitPattern: arr[0])))
+            case 0x73693820: // "si8 "
+                guard count >= 1 else { return .failure(.decodingFailed) }
+                return .success(Double(Int8(bitPattern: ptr[0])))
 
-        default:
-            // Fallback: if SMC reports a type we don't know but we got 4 bytes, try float.
-            if arr.count == 4 {
-                let v = arr.withUnsafeBytes { ptr -> Float in ptr.load(as: Float.self) }
-                if v.isFinite, v >= 0, v < 1_000_000 {
-                    return .success(Double(v))
+            default:
+                // Fallback: 4 bytes → float, 2 bytes → fpe2.
+                if count == 4 {
+                    var f: Float = 0
+                    memcpy(&f, ptr, 4)
+                    if f.isFinite, f >= 0, f < 1_000_000 {
+                        return .success(Double(f))
+                    }
                 }
+                if count == 2 {
+                    let raw16 = (UInt16(ptr[0]) << 8) | UInt16(ptr[1])
+                    return .success(Double(raw16) / 4.0)
+                }
+                HelperLogger.smc.warn("SMC unknown dataType FourCC=\(String(format: "0x%08x", raw)) for \(count) bytes")
+                return .failure(.unsupportedDataType(String(format: "0x%08x", raw)))
             }
-            // Or if we got 2 bytes, try FPE2.
-            if arr.count == 2 {
-                return .success(FPE2.decode(arr))
-            }
-            HelperLogger.smc.warn("SMC unknown dataType FourCC=\(String(format: "0x%08x", raw)) for \(count) bytes")
-            return .failure(.unsupportedDataType(String(format: "0x%08x", raw)))
         }
     }
 
@@ -194,6 +210,9 @@ struct SMCPLimitData {
 }
 
 /// Fixed-size 32-byte data buffer used for SMC key reads/writes.
+///
+/// Decoding/encoding helpers operate via an unsafe pointer over the tuple's storage —
+/// no `[UInt8]` allocations or `Mirror` reflection on the hot path.
 struct SMCBytes {
     var b: (UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8,
             UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8,
@@ -202,19 +221,20 @@ struct SMCBytes {
         (0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
          0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0)
 
-    func toArray(count: Int) -> [UInt8] {
-        let mirror = Mirror(reflecting: b)
-        var out: [UInt8] = []
-        out.reserveCapacity(count)
-        var i = 0
-        for child in mirror.children {
-            if i >= count { break }
-            if let byte = child.value as? UInt8 {
-                out.append(byte)
-            }
-            i += 1
+    /// Read-only raw pointer over the 32-byte tuple. Zero-allocation.
+    @inline(__always)
+    mutating func withRawBytes<R>(_ body: (UnsafePointer<UInt8>) -> R) -> R {
+        return withUnsafePointer(to: &b) { tuplePtr in
+            tuplePtr.withMemoryRebound(to: UInt8.self, capacity: 32) { body($0) }
         }
-        return out
+    }
+
+    /// Mutable raw pointer over the 32-byte tuple. Zero-allocation, used for writes.
+    @inline(__always)
+    mutating func withMutableRawBytes<R>(_ body: (UnsafeMutablePointer<UInt8>) -> R) -> R {
+        return withUnsafeMutablePointer(to: &b) { tuplePtr in
+            tuplePtr.withMemoryRebound(to: UInt8.self, capacity: 32) { body($0) }
+        }
     }
 }
 
