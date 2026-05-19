@@ -5,6 +5,9 @@ public final class SnapshotBuilder {
     public let smc: SMCReading
     public let temp: TemperatureReading
 
+    /// Active hardware profile — drives fanCount + which keys we probe.
+    public let fanCount: Int
+
     /// Cached fan ceilings, populated on boot and validated against a plausible range.
     public var f0Mn: Int = 1300
     public var f0Mx: Int = 6500
@@ -18,10 +21,13 @@ public final class SnapshotBuilder {
     /// Tick counter — used by diagnostic logging in the first 5 ticks after boot.
     public var tickCount: Int = 0
 
-    public init(smc: SMCReading, temp: TemperatureReading) {
+    public init(smc: SMCReading, temp: TemperatureReading, fanCount: Int = 2) {
         self.smc = smc
         self.temp = temp
-        loadFanCeilings()
+        self.fanCount = fanCount
+        if fanCount > 0 {
+            loadFanCeilings()
+        }
     }
 
     public func loadFanCeilings() {
@@ -30,10 +36,14 @@ public final class SnapshotBuilder {
         var rawF1Mn: Int?
         var rawF1Mx: Int?
 
-        if case .success(let v) = smc.read(.f0Mn) { rawF0Mn = Int(v.rounded()) }
-        if case .success(let v) = smc.read(.f0Mx) { rawF0Mx = Int(v.rounded()) }
-        if case .success(let v) = smc.read(.f1Mn) { rawF1Mn = Int(v.rounded()) }
-        if case .success(let v) = smc.read(.f1Mx) { rawF1Mx = Int(v.rounded()) }
+        if fanCount >= 1 {
+            if case .success(let v) = smc.read(.f0Mn) { rawF0Mn = Int(v.rounded()) }
+            if case .success(let v) = smc.read(.f0Mx) { rawF0Mx = Int(v.rounded()) }
+        }
+        if fanCount >= 2 {
+            if case .success(let v) = smc.read(.f1Mn) { rawF1Mn = Int(v.rounded()) }
+            if case .success(let v) = smc.read(.f1Mx) { rawF1Mx = Int(v.rounded()) }
+        }
 
         let f0MnVal = rawF0Mn ?? 1300
         let f0MxVal = rawF0Mx ?? 6500
@@ -72,40 +82,12 @@ public final class SnapshotBuilder {
         let isDiagTick = tickCount <= 5
         // Per-tick conflict state — true if any read this tick returned .locked.
         var conflict = false
-        let leftRPM: Int? = {
-            switch smc.read(.f0Ac) {
-            case .success(let v):
-                let val = Int(v.rounded())
-                if isDiagTick {
-                    HelperLogger.smc.log("smc tick=\(self.tickCount) key=F0Ac decoded=\(val) RPM")
-                }
-                return val
-            case .failure(.locked):
-                conflict = true
-                if isDiagTick { HelperLogger.smc.warn("smc tick=\(self.tickCount) key=F0Ac error=locked") }
-                return nil
-            case .failure(let err):
-                if isDiagTick { HelperLogger.smc.warn("smc tick=\(self.tickCount) key=F0Ac error=\(err)") }
-                return nil
-            }
-        }()
-        let rightRPM: Int? = {
-            switch smc.read(.f1Ac) {
-            case .success(let v):
-                let val = Int(v.rounded())
-                if isDiagTick {
-                    HelperLogger.smc.log("smc tick=\(self.tickCount) key=F1Ac decoded=\(val) RPM")
-                }
-                return val
-            case .failure(.locked):
-                conflict = true
-                if isDiagTick { HelperLogger.smc.warn("smc tick=\(self.tickCount) key=F1Ac error=locked") }
-                return nil
-            case .failure(let err):
-                if isDiagTick { HelperLogger.smc.warn("smc tick=\(self.tickCount) key=F1Ac error=\(err)") }
-                return nil
-            }
-        }()
+
+        // Fan-count-aware reads: skip F1* probe entirely on single-fan or
+        // fanless models so the SMC doesn't log spurious "key not found"
+        // and we don't pretend a non-existent fan is "stopped".
+        let leftRPM: Int? = fanCount >= 1 ? readFanAc(.f0Ac, isDiagTick: isDiagTick, conflict: &conflict) : nil
+        let rightRPM: Int? = fanCount >= 2 ? readFanAc(.f1Ac, isDiagTick: isDiagTick, conflict: &conflict) : nil
 
         let cpuTemp = temp.maxCPUTemp()
 
@@ -122,6 +104,24 @@ public final class SnapshotBuilder {
             stale: false,
             smcConflict: conflict
         )
+    }
+
+    private func readFanAc(_ key: SMCKey, isDiagTick: Bool, conflict: inout Bool) -> Int? {
+        switch smc.read(key) {
+        case .success(let v):
+            let val = Int(v.rounded())
+            if isDiagTick {
+                HelperLogger.smc.log("smc tick=\(self.tickCount) key=\(key.code) decoded=\(val) RPM")
+            }
+            return val
+        case .failure(.locked):
+            conflict = true
+            if isDiagTick { HelperLogger.smc.warn("smc tick=\(self.tickCount) key=\(key.code) error=locked") }
+            return nil
+        case .failure(let err):
+            if isDiagTick { HelperLogger.smc.warn("smc tick=\(self.tickCount) key=\(key.code) error=\(err)") }
+            return nil
+        }
     }
 
     /// duty = (rpm - mn) / (mx - mn), clamped 0…1, returns nil when rpm is nil.

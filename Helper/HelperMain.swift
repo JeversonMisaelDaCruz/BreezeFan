@@ -6,13 +6,20 @@ enum HelperMain {
     static func main() {
         HelperLogger.xpc.log("BreezeFanHelper boot — bundle=\(HelperConstants.helperBundleID)")
 
-        // Detect hardware. On unsupported models we accept connections but reject mutations.
-        let model = ModelDetector.current
-        let supported = ModelDetector.isSupported(model: model)
+        // Detect hardware. Resolve the model profile up front so every subsystem
+        // uses the right temp keys / fan count / control policy.
+        let profile = ModelDetector.currentProfile
+        let supported = profile.controlSupported
         if !supported {
-            HelperLogger.control.warn("Unsupported model \(model), entering read-only mode")
+            HelperLogger.control.warn(
+                "Read-only mode — model=\(profile.identifier) fanCount=\(profile.fanCount) " +
+                "(profile.controlSupported=false)"
+            )
         } else {
-            HelperLogger.control.log("Hardware: \(model) — full control mode")
+            HelperLogger.control.log(
+                "Hardware: \(profile.displayName) (\(profile.identifier)) " +
+                "fanCount=\(profile.fanCount) — full control mode"
+            )
         }
 
         // Wire SMC + sensors.
@@ -20,8 +27,16 @@ enum HelperMain {
             let smcReader = try SMCReaderImpl()
             let smcWriter = try SMCWriterImpl()
             let ioHID = IOHIDReader()
-            let tempReader = TemperatureReader(smc: smcReader, ioHID: ioHID)
-            let snapshotBuilder = SnapshotBuilder(smc: smcReader, temp: tempReader)
+            let tempReader = TemperatureReader(
+                smc: smcReader,
+                ioHID: ioHID,
+                tempKeys: profile.tempKeys
+            )
+            let snapshotBuilder = SnapshotBuilder(
+                smc: smcReader,
+                temp: tempReader,
+                fanCount: profile.fanCount
+            )
             let poller = SensorPoller(builder: snapshotBuilder)
             let pollAdapter = SensorPollingAdapter(poller: poller)
             pollAdapter.startPump()
@@ -64,7 +79,13 @@ enum HelperMain {
                 modeManager: modeManager,
                 ceilingsProvider: snapshotBuilder
             )
-            HelperService.shared.setReadOnly(!supported, model: model)
+            HelperService.shared.setReadOnly(!supported, model: profile.identifier)
+            // Publish capabilities snapshot. `temperatureSourceValid` is best-effort:
+            // for known profiles we trust the SMC key list; the first snapshot
+            // poll will refine if every read returns nil.
+            HelperService.shared.setCapabilities(
+                profile.capabilities(temperatureSourceValid: !profile.tempKeys.isEmpty)
+            )
 
             HelperLogger.control.log("Helper subsystems initialized — mode=\(cfg.modeKind.rawValue)")
         } catch {

@@ -15,9 +15,15 @@ public final class TemperatureReader: TemperatureReading {
     public let smc: SMCReading
     public let ioHID: IOHIDReading
 
-    public init(smc: SMCReading, ioHID: IOHIDReading) {
+    /// CPU temperature SMC keys to query, in priority order. Comes from the
+    /// active `ModelProfile` so M2/M3/Air variants can plug different keys
+    /// without modifying this class.
+    public let tempKeys: [SMCKey]
+
+    public init(smc: SMCReading, ioHID: IOHIDReading, tempKeys: [SMCKey]) {
         self.smc = smc
         self.ioHID = ioHID
+        self.tempKeys = tempKeys
     }
 
     /// Reads each CPU performance cluster key, filters by plausible range,
@@ -28,7 +34,7 @@ public final class TemperatureReader: TemperatureReading {
     /// the running max in a single Double.
     public func maxCPUTemp() -> Double? {
         var maxVal: Double = -.infinity
-        for key in SMCKey.cpuPerfClusters {
+        for key in tempKeys {
             switch smc.read(key) {
             case .success(let v):
                 if Self.plausibleRange.contains(v) {

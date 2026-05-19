@@ -17,6 +17,8 @@ final class HelperService: NSObject, HelperProtocol, @unchecked Sendable {
     private var ceilingsProvider: CeilingsProviding?
     private var readOnly: Bool = false
     private var modelIdentifier: String = ""
+    /// Active hardware profile snapshot — set at helper boot.
+    private var capabilities: HardwareCapabilities = .unknown
 
     func wire(
         sensorPoller: SensorPolling,
@@ -35,6 +37,11 @@ final class HelperService: NSObject, HelperProtocol, @unchecked Sendable {
             self.readOnly = readOnly
             self.modelIdentifier = model
         }
+    }
+
+    /// Stores the active hardware capabilities snapshot for `getHardwareProfile`.
+    func setCapabilities(_ caps: HardwareCapabilities) {
+        queue.async { self.capabilities = caps }
     }
 
     // MARK: - HelperProtocol
@@ -135,6 +142,17 @@ final class HelperService: NSObject, HelperProtocol, @unchecked Sendable {
             let model = self.modelIdentifier.isEmpty ? ModelDetector.current : self.modelIdentifier
             let isReadOnly = self.readOnly || !ModelDetector.isSupported(model: model)
             reply(model, isReadOnly)
+        }
+    }
+
+    func getHardwareProfile(reply: @escaping (Data?, Error?) -> Void) {
+        queue.async {
+            do {
+                let data = try self.encoder.encode(self.capabilities)
+                reply(data, nil)
+            } catch {
+                reply(nil, error)
+            }
         }
     }
 
