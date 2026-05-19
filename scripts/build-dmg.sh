@@ -3,12 +3,18 @@
 # build-dmg.sh — builds BreezeFan.app in Release mode and packages it as a .dmg
 #
 # Usage:
-#   ./scripts/build-dmg.sh                  # default — uses hdiutil
-#   ./scripts/build-dmg.sh --pretty         # uses create-dmg (brew install create-dmg)
-#   ./scripts/build-dmg.sh --version 0.2.0  # custom version in filename
+#   ./scripts/build-dmg.sh                              # basic — hdiutil
+#   ./scripts/build-dmg.sh --pretty                     # branded — create-dmg
+#                                                       #   (brew install create-dmg)
+#   ./scripts/build-dmg.sh --pretty --regenerate-assets # rebuild bg + volicon first
+#   ./scripts/build-dmg.sh --version 0.2.0              # custom version in filename
 #
 # Output:
 #   dist/BreezeFan-<version>.dmg
+#
+# Pretty mode visual assets (auto-checked on launch):
+#   - Resources/dmg-background.png  (1200×760 @2x; regen: scripts/generate-dmg-background.swift)
+#   - Resources/dmg-volume.icns     (Finder sidebar icon; regen: scripts/build-dmg-volume-icon.sh)
 #
 # Notes on distribution:
 #   - This builds with ad-hoc signing (CODE_SIGN_IDENTITY="-"). The .dmg works
@@ -30,19 +36,23 @@ SCHEME="BreezeFan"
 CONFIGURATION="Release"
 VERSION="0.1.0"
 PRETTY=false
+REGEN_ASSETS=false
 DIST_DIR="$PROJECT_DIR/dist"
 BUILD_DIR="$PROJECT_DIR/.build/dmg"
+BG_PNG="$PROJECT_DIR/Resources/dmg-background.png"
+VOL_ICON="$PROJECT_DIR/Resources/dmg-volume.icns"
 
 # ─── Parse args ───────────────────────────────────────────────────────────────
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --pretty)         PRETTY=true; shift ;;
-    --version)        VERSION="$2"; shift 2 ;;
-    --version=*)      VERSION="${1#*=}"; shift ;;
-    --debug)          CONFIGURATION="Debug"; shift ;;
+    --pretty)             PRETTY=true; shift ;;
+    --regenerate-assets)  REGEN_ASSETS=true; shift ;;
+    --version)            VERSION="$2"; shift 2 ;;
+    --version=*)          VERSION="${1#*=}"; shift ;;
+    --debug)              CONFIGURATION="Debug"; shift ;;
     -h|--help)
-      head -n 25 "$0" | tail -n 23 | sed 's/^# //; s/^#$//'
+      head -n 30 "$0" | tail -n 28 | sed 's/^# //; s/^#$//'
       exit 0 ;;
     *)
       echo "Unknown option: $1" >&2
@@ -80,6 +90,38 @@ if $PRETTY && ! command -v create-dmg >/dev/null 2>&1; then
   echo "✗ --pretty requires create-dmg. Install: brew install create-dmg" >&2
   echo "  Or run without --pretty for the basic hdiutil version." >&2
   exit 1
+fi
+
+# ─── Regenerate assets (if requested) ─────────────────────────────────────────
+
+if $REGEN_ASSETS; then
+  echo "▸ Regenerating DMG visual assets…"
+  swift "$PROJECT_DIR/scripts/generate-dmg-background.swift" "$BG_PNG" \
+    || { echo "✗ generate-dmg-background.swift failed" >&2; exit 1; }
+  bash "$PROJECT_DIR/scripts/build-dmg-volume-icon.sh" \
+    || { echo "✗ build-dmg-volume-icon.sh failed" >&2; exit 1; }
+fi
+
+# ─── Pretty-mode asset pre-flight ─────────────────────────────────────────────
+
+if $PRETTY; then
+  if [[ ! -f "$BG_PNG" ]]; then
+    echo "✗ background missing — re-run with --regenerate-assets" >&2
+    echo "  Expected at: $BG_PNG" >&2
+    exit 1
+  fi
+  BG_W=$(sips -g pixelWidth  "$BG_PNG" 2>/dev/null | awk '/pixelWidth/  {print $2}')
+  BG_H=$(sips -g pixelHeight "$BG_PNG" 2>/dev/null | awk '/pixelHeight/ {print $2}')
+  if [[ "$BG_W" != "1200" || "$BG_H" != "760" ]]; then
+    echo "✗ background must be exactly 1200×760 (got ${BG_W}×${BG_H})" >&2
+    echo "  Re-run with --regenerate-assets to fix." >&2
+    exit 1
+  fi
+  if [[ ! -f "$VOL_ICON" ]]; then
+    echo "✗ volume icon missing — re-run with --regenerate-assets" >&2
+    echo "  Expected at: $VOL_ICON" >&2
+    exit 1
+  fi
 fi
 
 # ─── Clean & build ────────────────────────────────────────────────────────────
@@ -181,16 +223,17 @@ ln -s /Applications "$STAGING_DIR/Applications"
 # ─── Build DMG ────────────────────────────────────────────────────────────────
 
 if $PRETTY; then
-  echo "▸ Building .dmg with create-dmg…"
+  echo "▸ Building branded .dmg with create-dmg…"
   create-dmg \
     --volname "BreezeFan $VERSION" \
+    --volicon "$VOL_ICON" \
+    --background "$BG_PNG" \
     --window-pos 200 120 \
     --window-size 600 380 \
-    --icon-size 100 \
+    --icon-size 128 \
     --icon "$APP_NAME.app" 150 190 \
     --hide-extension "$APP_NAME.app" \
     --app-drop-link 450 190 \
-    --no-internet-enable \
     "$DMG_PATH" \
     "$STAGING_DIR/" \
     || { echo "✗ create-dmg failed" >&2; exit 1; }
@@ -217,9 +260,20 @@ fi
 # ─── Final ───────────────────────────────────────────────────────────────────
 
 DMG_SIZE=$(du -h "$DMG_PATH" | cut -f1)
+DMG_SHA256=$(shasum -a 256 "$DMG_PATH" | awk '{print $1}')
+
 echo
 echo "✓ DMG created: $DMG_PATH ($DMG_SIZE)"
+echo "  SHA256: $DMG_SHA256"
 echo
+
+# Gatekeeper assessment (informational — ad-hoc signing always rejected)
+echo "▸ Gatekeeper assessment (ad-hoc — expected 'rejected'):"
+spctl --assess --type open --context context:primary-signature -v "$DMG_PATH" 2>&1 \
+  | head -2 \
+  | sed 's/^/  /'
+echo
+
 echo "Test it:"
 echo "  open '$DMG_PATH'"
 echo

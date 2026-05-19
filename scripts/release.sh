@@ -120,8 +120,8 @@ xcodegen generate
 
 # ─── 3. Build DMG ────────────────────────────────────────────────────────────
 
-echo "▸ Building DMG…"
-./scripts/build-dmg.sh --version "$VERSION"
+echo "▸ Building branded DMG (--pretty --regenerate-assets)…"
+./scripts/build-dmg.sh --pretty --regenerate-assets --version "$VERSION"
 DMG_PATH="$PROJECT_DIR/dist/$APP_NAME-$VERSION.dmg"
 if [[ ! -f "$DMG_PATH" ]]; then
   echo "✗ DMG não foi gerado em $DMG_PATH" >&2
@@ -129,7 +129,9 @@ if [[ ! -f "$DMG_PATH" ]]; then
 fi
 
 DMG_SIZE=$(stat -f %z "$DMG_PATH")
+DMG_SHA256=$(shasum -a 256 "$DMG_PATH" | awk '{print $1}')
 echo "▸ DMG: $DMG_PATH ($DMG_SIZE bytes)"
+echo "▸ SHA256: $DMG_SHA256"
 
 # ─── 4. Sign DMG with Sparkle ────────────────────────────────────────────────
 
