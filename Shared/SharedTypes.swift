@@ -39,6 +39,15 @@ public struct SensorSnapshot: Codable, Sendable, Equatable {
         stale: true,
         smcConflict: false
     )
+
+    /// Number of fans reporting non-zero RPM. Computed once at the type level so
+    /// the App and the menu bar don't each implement the same arithmetic.
+    public var activeFanCount: Int {
+        var n = 0
+        if (leftRPM ?? 0) > 0 { n += 1 }
+        if (rightRPM ?? 0) > 0 { n += 1 }
+        return n
+    }
 }
 
 /// Three control modes, mutually exclusive. Persisted in `control.json`.
