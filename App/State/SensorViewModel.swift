@@ -19,14 +19,15 @@ final class SensorViewModel {
 
     private var task: Task<Void, Never>?
 
-    /// Starts polling at 1Hz. Idempotent.
+    /// Starts polling every 5s (matches the helper's sampling cadence — polling faster than
+    /// the helper refreshes only wastes XPC round-trips). Idempotent.
     func start() {
         guard task == nil else { return }
         isPolling = true
         task = Task { [weak self] in
             while let self, !Task.isCancelled {
                 await self.pollOnce()
-                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                try? await Task.sleep(nanoseconds: 5_000_000_000)
             }
         }
     }

@@ -16,6 +16,9 @@ struct MenuBarPopoverView: View {
             PresetGrid()
                 .disabled(!sensorVM.helperReachable || appState.fanCeilings == nil)
                 .opacity((sensorVM.helperReachable && appState.fanCeilings != nil) ? 1.0 : 0.4)
+            CurveModeRow()
+                .disabled(!sensorVM.helperReachable || appState.fanCeilings == nil)
+                .opacity((sensorVM.helperReachable && appState.fanCeilings != nil) ? 1.0 : 0.4)
             HStack {
                 Spacer()
                 Button(action: onOpenWindow) {

@@ -53,7 +53,7 @@ final class StatusItemController: NSObject {
     private func configurePopover() {
         popover.behavior = .transient
         popover.animates = true
-        popover.contentSize = NSSize(width: 320, height: 220)
+        popover.contentSize = NSSize(width: 320, height: 270)
         let view = MenuBarPopoverView(onOpenWindow: { [weak self] in
             self?.openMainWindow()
             self?.popover.performClose(nil)
@@ -175,11 +175,11 @@ final class StatusItemController: NSObject {
     // MARK: - State observation
 
     private func startObserving() {
-        // Update tooltip + tint every 1s based on snapshot/mode/conflict.
+        // Refresh tooltip + tint every 5s, matching the helper sampling cadence.
         observerTask = Task { @MainActor [weak self] in
             while !Task.isCancelled {
                 self?.refreshIcon()
-                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                try? await Task.sleep(nanoseconds: 5_000_000_000)
             }
         }
     }
@@ -199,7 +199,8 @@ final class StatusItemController: NSObject {
 
     /// Refreshes the menu bar icon (palette color baked into the image) and tooltip.
     /// Tooltip throttled to every 2s so it doesn't change while user is reading it.
-    /// The image is rebuilt only when state changes (cached comparison).
+    /// The image is rebuilt only when state changes (cached comparison) — cheap to call
+    /// on every 5s observer tick.
     private var cachedImageState: (mode: ControlMode.Kind, conflict: Bool)?
 
     func refreshIcon() {

@@ -81,6 +81,9 @@ struct PresetGrid: View {
                 try await HelperClient.shared.setMode(mode)
                 await MainActor.run {
                     appState.activePreset = preset
+                    // No preset is a curve, so this is always .auto/.forced — which also
+                    // un-highlights the "Curva de Fan" row (it keys off modeKind == .curve),
+                    // keeping the five controls mutually exclusive.
                     appState.modeKind = preset == .balanced ? .auto : .forced
                     inFlight = nil
                     lastError = nil

@@ -118,6 +118,9 @@ targets:
     sources:
       - path: Tests
       - path: Shared
+      # Pure, dependency-free helper logic compiled into the test bundle so it can be
+      # unit-tested directly (the Helper is an executable target and can't be imported).
+      - path: Helper/Control/SafetyOverride.swift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.breezefan.tests
