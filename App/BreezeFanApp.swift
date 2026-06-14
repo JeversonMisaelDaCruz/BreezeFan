@@ -34,7 +34,9 @@ struct BreezeFanApp: App {
     }
 
     var body: some Scene {
-        WindowGroup {
+        // Single `Window` (not WindowGroup) so it can be reliably re-opened via
+        // `openWindow(id: "main")` after the user closes it — see WindowAccess.
+        Window("BreezeFan", id: "main") {
             FCWindow {
                 ZStack {
                     MainView()
@@ -50,7 +52,7 @@ struct BreezeFanApp: App {
                 .animation(FCAnimation.bouncy, value: appState.curveEditorPresented)
             }
             .environment(appState)
-            .frame(width: 360, height: 640)
+            .frame(width: 360, height: 690)
         }
         // Default `.titleBar` window style — let macOS draw the titlebar with its
         // native traffic lights in the correct OS position. The user explicitly
@@ -67,10 +69,7 @@ struct BreezeFanApp: App {
             CommandGroup(after: .appInfo) {
                 Divider()
                 Button("Show Window") {
-                    NSApp.activate(ignoringOtherApps: true)
-                    for window in NSApp.windows where window.canBecomeKey {
-                        window.makeKeyAndOrderFront(nil)
-                    }
+                    StatusItemController.shared.showMainWindow()
                 }
                 .keyboardShortcut("0", modifiers: .command)
 

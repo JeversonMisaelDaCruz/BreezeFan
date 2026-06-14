@@ -15,6 +15,7 @@ import SwiftUI
 struct MainView: View {
     @Environment(AppState.self) private var appState
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.openWindow) private var openWindow
     @State private var sensorVM = SensorViewModel()
     @State private var footerHovered = false
 
@@ -40,7 +41,12 @@ struct MainView: View {
         .padding(EdgeInsets(top: 4, leading: 14, bottom: 14, trailing: 14))
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .animation(FCAnimation.normal, value: sensorVM.helperReachable)
-        .onAppear { sensorVM.start() }
+        .onAppear {
+            sensorVM.start()
+            // Capture the scene's openWindow so AppKit menus can reopen the window
+            // after it has been closed.
+            WindowAccess.shared.openMainWindow = { openWindow(id: "main") }
+        }
         .onDisappear { sensorVM.stop() }
         .onChange(of: scenePhase) { _, phase in
             switch phase {
@@ -208,6 +214,9 @@ struct MainView: View {
             VStack(alignment: .leading, spacing: 10) {
                 sectionLabel("MODE")
                 PresetGrid()
+                    .disabled(!sensorVM.helperReachable)
+                    .opacity(sensorVM.helperReachable ? 1.0 : 0.4)
+                CurveModeRow()
                     .disabled(!sensorVM.helperReachable)
                     .opacity(sensorVM.helperReachable ? 1.0 : 0.4)
             }

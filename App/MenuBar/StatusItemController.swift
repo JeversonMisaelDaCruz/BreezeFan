@@ -2,6 +2,17 @@ import AppKit
 import SwiftUI
 import Combine
 
+/// Bridges AppKit menu / status-item actions to SwiftUI's `openWindow`. AppKit
+/// alone cannot re-create a SwiftUI scene window once it has been closed, so a
+/// SwiftUI view captures the `openWindow` action into here for AppKit to call.
+@MainActor
+final class WindowAccess {
+    static let shared = WindowAccess()
+    /// Set by a SwiftUI view (MainView / popover) that owns the scene environment.
+    var openMainWindow: (() -> Void)?
+    private init() {}
+}
+
 /// Singleton controller for the menu bar (NSStatusItem) presence.
 /// - Owns the NSStatusItem, its tooltip + reactive tint
 /// - Owns the NSPopover used for left-click
@@ -55,7 +66,7 @@ final class StatusItemController: NSObject {
         popover.animates = true
         popover.contentSize = NSSize(width: 320, height: 270)
         let view = MenuBarPopoverView(onOpenWindow: { [weak self] in
-            self?.openMainWindow()
+            // The SwiftUI view opens the window via openWindow(id:); just dismiss here.
             self?.popover.performClose(nil)
         })
         .environment(AppState.shared)
@@ -141,11 +152,11 @@ final class StatusItemController: NSObject {
     // MARK: - Menu actions
 
     @objc private func showWindow() {
-        openMainWindow()
+        showMainWindow()
     }
 
     @objc private func editCurve() {
-        openMainWindow()
+        showMainWindow()
         AppState.shared.curveEditorPresented = true
     }
 
@@ -232,11 +243,15 @@ final class StatusItemController: NSObject {
 
     // MARK: - Helpers
 
-    private func openMainWindow() {
+    /// Shows (and re-creates if needed) the main window. Robust against the window
+    /// having been closed: raises an existing main window, otherwise asks SwiftUI to
+    /// re-open the `Window(id: "main")` scene via the WindowAccess bridge.
+    func showMainWindow() {
         NSApp.activate(ignoringOtherApps: true)
-        // Also explicitly raise the first window of the WindowGroup.
-        for window in NSApp.windows where window.canBecomeKey {
+        if let window = NSApp.windows.first(where: { $0.canBecomeMain && !($0 is NSPanel) }) {
             window.makeKeyAndOrderFront(nil)
+        } else {
+            WindowAccess.shared.openMainWindow?()
         }
     }
 

@@ -1,9 +1,11 @@
 import SwiftUI
+import AppKit
 
 /// Compact popover content shown when the menu bar icon is left-clicked.
 /// Reuses PresetGrid + a small temp display. 320×180 pt total.
 struct MenuBarPopoverView: View {
     @Environment(AppState.self) private var appState
+    @Environment(\.openWindow) private var openWindow
     @State private var sensorVM = SensorViewModel()
 
     /// Closure called when user taps "Open BreezeFan →" — host wires it to popover dismiss + window-front.
@@ -21,7 +23,11 @@ struct MenuBarPopoverView: View {
                 .opacity((sensorVM.helperReachable && appState.fanCeilings != nil) ? 1.0 : 0.4)
             HStack {
                 Spacer()
-                Button(action: onOpenWindow) {
+                Button {
+                    NSApp.activate(ignoringOtherApps: true)
+                    openWindow(id: "main")
+                    onOpenWindow()
+                } label: {
                     Text("Open BreezeFan →")
                         .font(.system(size: 10, weight: .medium))
                         .foregroundStyle(appState.accentColor)
@@ -34,6 +40,8 @@ struct MenuBarPopoverView: View {
         .onAppear {
             sensorVM.start()
             Task { await sensorVM.pollOnce() }
+            // Capture the scene's openWindow so AppKit menus can reopen the window.
+            WindowAccess.shared.openMainWindow = { openWindow(id: "main") }
         }
         .onDisappear {
             sensorVM.stop()
