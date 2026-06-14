@@ -1,8 +1,19 @@
 import SwiftUI
 import AppKit
 
+/// Keeps the app alive in the menu bar when the main window is closed.
+/// This is a status-bar–resident app (NSStatusItem), so closing the single
+/// `Window` must NOT terminate the process — otherwise the menu-bar icon
+/// disappears and the app becomes unusable until relaunch.
+final class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        false
+    }
+}
+
 @main
 struct BreezeFanApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @State private var appState = AppState.shared
 
     /// Sparkle auto-updater. `startingUpdater: true` triggers automatic background
